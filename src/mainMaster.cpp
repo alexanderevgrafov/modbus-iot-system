@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 #include "ModbusRtu.h"
-#include <LiquidCrystal_I2C.h>
+//#include <LiquidCrystal_I2C.h>
+//#include <Wire.h>
 
 #define SSerialTxControl 13
 #define RS485Transmit HIGH
@@ -14,10 +15,10 @@ uint8_t u8state;
 
 int pushButton = 2;
 
-int buttState = 0;
-int prevState = 0;
+////int buttState = 0;
+//int prevState = 0;
 
-LiquidCrystal_I2C lcd(0x3F, 16, 2); // Устанавливаем дисплей
+//LiquidCrystal_I2C lcd(0x3f, 16, 2); // Устанавливаем дисплей
 SoftwareSerial mySerial(3, 5);
 Modbus master(0, mySerial, SSerialTxControl);
 
@@ -33,8 +34,8 @@ void setup()
 
   Serial.begin(9600);
   mySerial.begin(9600);
-  lcd.init();
-  lcd.backlight(); // Включаем подсветку дисплея
+ // lcd.init();
+ // lcd.backlight(); // Включаем подсветку дисплея
 
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(SSerialTxControl, OUTPUT);
@@ -70,19 +71,22 @@ void loop()
 
   // Выводим на экран количество секунд с момента запуска ардуины
   //     Serial.println();
-  int seconds = millis() / 1000;
+  unsigned long seconds = millis() / 1000;
 
-  lcd.setCursor(0, 0);
-  lcd.print(seconds);
+  //lcd.setCursor(0, 0);
+  //lcd.print(seconds);
 
-  lcd.setCursor(0, 1);
-  lcd.print(u8state);
 
+
+//  lcd.setCursor(0, 1);
+//  lcd.print(u8state);
+/*
   lcd.setCursor(6, 0);
   lcd.print(master.getErrCnt());
   lcd.print(",");
   lcd.print(master.getLastError());
   lcd.print(";");
+*/
 
   switch (u8state)
   {
@@ -108,10 +112,18 @@ void loop()
     {
       u8state = 0;
       u32wait = millis() + POLL_PERIOD;
-      lcd.setCursor(4, 1);
+      /*
+      lcd.setCursor(0, 1);
       lcd.print(au16data[0]);
       lcd.print(",");
       lcd.print(master.getOutCnt());
+      */
+      Serial.print(seconds);
+      Serial.print("; ");
+      Serial.print(au16data[0]);
+      Serial.print("; ");
+      Serial.print(master.getOutCnt());
+Serial.println(".");
     }
     break;
   }
@@ -119,7 +131,7 @@ void loop()
   //digitalWrite(SSerialTxControl, RS485Transmit);
   //mySerial.println(seconds);
 
-  delay(50);
+  //delay(50);
 
   /*
       master.writeSingle(1, (unsigned int)buttState, 0); // запись регистра хранения с адресом 5, контроллера с адресом 1
