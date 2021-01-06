@@ -1,0 +1,26 @@
+{
+  "scripts": {
+    "watch": "webpack --progress --watch --mode=development",
+    "compile": "webpack --progress --mode=development",
+    "build": "webpack --mode=production",
+    "server-watch": "nodemon ./src/js/server/server.js",
+    "server": "node ./src/js/server/server.js"
+  },
+  "devDependencies": {
+    "html-webpack-plugin": "^4.5.1",
+    "interpolate-html-plugin": "^3.0.0",
+    "webpack": "^5.11.1",
+    "webpack-cli": "^4.3.1"
+  },
+  "dependencies": {
+    "clean-webpack-plugin": "^3.0.0",
+    "fastify": "^3.9.2",
+    "fastify-static": "^3.3.1",
+    "lodash": "^4.17.20",
+    "modbus-serial": "^8.0.1",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
+    "ts-loader": "^8.0.14",
+    "typescript": "^4.1.3"
+  }
+}

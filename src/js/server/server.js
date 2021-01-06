@@ -1,7 +1,11 @@
+const path = require('path');
 const ModbusRTU = require("modbus-serial");
-const SerialPort = require("serialport");
-const Gpio = require('onoff').Gpio; //require onoff to control GPIO
-const MBusDirectionPin = new Gpio(4, 'out'); //declare GPIO4 an output
+//const SerialPort = require("serialport");
+//const Gpio = require('onoff').Gpio; //require onoff to control GPIO
+//const MBusDirectionPin = new Gpio(4, 'out'); //declare GPIO4 an output
+const fastify = require('fastify')({
+    logger: true
+  })
 
 const LOOP_PERIOD = 2000;
 //const SERIAL_PORT = '/dev/serial0';
@@ -16,7 +20,7 @@ function setup(){
 //    master.open();
  //   serialPort.open();
     console.log('---------------');
-    MBusDirectionPin.writeSync(1);
+  //  MBusDirectionPin.writeSync(1);
     master.connectRTUBuffered(SERIAL_PORT, { baudRate: 9600 });
     master.setTimeout(1000);
 }
@@ -52,5 +56,20 @@ function read() {
 }
 
 */
-setup();
-setInterval(loop, LOOP_PERIOD);
+fastify
+.register(require('fastify-static'), {
+    root: path.join(__dirname, '/../../../public'),
+})
+.register(require('./api-server'))
+
+fastify.listen(3000, function (err, address) {
+    if (err) {
+      fastify.log.error(err)
+      process.exit(1)
+    }
+    fastify.log.info(`server listening on ${address}`)
+  })
+
+//setup();
+//setInterval(loop, LOOP_PERIOD);
+

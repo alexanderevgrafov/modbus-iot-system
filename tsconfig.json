@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "pretty": true,
+        "resolveJsonModule": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "module": "commonjs",
+        "target": "es2017",
+        "lib":[ "es2017" ],
+        "jsx": "react",
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "outDir": "./server",
+        "alwaysStrict": true,
+        "allowJs": true,
+        "allowSyntheticDefaultImports": true
+    },
+
+//     "files": [
+//   //      "./src/js/server/central.ts"
+//     ],
+
+    "exclude": [
+        "node_modules",
+        "vendor"
+    ],
+
+    "compileOnSave": true
+}
