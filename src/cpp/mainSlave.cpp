@@ -7,48 +7,44 @@
 
 #define SSerialTxControl 3
 
-#define RS485Transmit HIGH
-#define RS485Receive LOW
+//#define RS485Transmit HIGH
+//#define RS485Receive LOW
 
-String string;
+//String string;
 int8_t state = 0;
 
-uint16_t au16data[16] = {11, 22, 33, 44, 55, 7182, 28182, 8,
-                         0, 0, 0, 0, 0, 0, 1, 0};
-
-//-SoftwareSerial mySerial(2, 4);
-//-Modbus slave(14, mySerial, SSerialTxControl);
+SoftwareSerial mySerial(2, 4);
+Modbus slave(14, mySerial, SSerialTxControl);
 
 SmartHomeStruct sHome;
 
 void setup() {
+  mySerial.begin(9600);
+  slave.start();
+    pinMode(SSerialTxControl, OUTPUT);
+
   Serial.begin(9600);
-
-  sHome.initConfig(0x1, 12, 0x0, 0x0, 0x3, 0x0);
-  sHome.data.setAllData(0);
-
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(SSerialTxControl, OUTPUT);
+  sHome.initConfig(0x1, 12, 0x3, 0x4, 0x3, 0x0);
+  sHome.setAllData(0);
 }
 
 void loop() {
-  unsigned long time = millis() / 1000;
-
-  au16data[1] = time;
+  //unsigned long time = millis() / 1000;
+ // au16data[1] = time;
 
   if (sHome.configIsChanged()) {
     Serial.println("--Config changed, pins setup");
     sHome.setupPins();
-  } else if (sHome.dataIsChanged()) {
-  //  debug.log("--Data changed", sHome.data.getDataBits());
+  } else if (sHome.pinsAreChanged()) {
+//      debug.log("--Data changed (%ld):", sHome.data.getDataBits());
+    debug.log("--Pins changed (%ld):", sHome.pin_bits);
     sHome.copyData();
-
-    if (sHome.dataIsChanged()) {
+  } else if (sHome.dataIsChanged()) {
+      debug.log("--Data changed (%ld):", sHome.bits);
       sHome.writePins();
-    }
   } else {
-    Serial.print(".");
-    delay(500);
+    // Serial.print(".");
+    // delay(500);
 
     // if (rand() < RAND_MAX / 4) {
     //   byte bit = rand() < RAND_MAX / 2 ? 1 : 0;
@@ -59,8 +55,10 @@ void loop() {
     sHome.readPins();
   }
 
-  //-  state = slave.poll(au16data, 16);
-  // Serial.print(time);
-  // Serial.print("--");
-  // Serial.print(state);
+  //((uint16_t*)&sHome)[7] = time;
+   //state = slave.poll(au16data, 16);
+   state = slave.poll((uint16_t*)&sHome, sizeof(sHome));
+  //  Serial.print(time);
+  //  Serial.print("--");
+  //  Serial.print(state);
 }

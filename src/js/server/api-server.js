@@ -1,9 +1,22 @@
 async function routes (fastify, options) {
 
+    const {master} = options;
 
     fastify.get('/test', async (request, reply) => {
       return { hellow: 'world' }
     })
+
+    fastify.get('/led', async (request, reply) => {
+        const bits = parseInt(request.query.led);
+  
+        await master.setID(14);
+        await master.writeRegister(8, bits)
+      //  .then(res => console.log("write res:", res))
+        .catch(console.error);
+
+        return {result: bits}
+      })
+    
 /*  
     fastify.get('/animals', async (request, reply) => {
       const result = await collection.find().toArray()
@@ -23,5 +36,4 @@ async function routes (fastify, options) {
     */
   }
   
-  //module.exports.pre
   module.exports = routes

@@ -1,21 +1,27 @@
 import * as React from 'react';
-import { useState } from 'react';
 import * as ReactDOM from 'react-dom';
+import {Board} from "./Board";
+import {AppState} from "./AppState";
+import { useState, useEffect, useReducer } from 'react';
+import { observer } from "mobx-react" // Or "mobx-react".
+//import ControlPanel from "./ControlPanel";
+//import {ApplicationState} from "./AppState";
 
+const Application = observer(() => {
+   // const [appState] = useState(new AppState);
+    //const setColor = mask => fetch('/led?led=' + (state ^ mask)).then(() => setState(state ^ mask))
+    const [state, setState] = useState(null);
+    useEffect(()=>{
+        setState(new AppState);
+        return ()=>{
+            // Remove Board Model into storage
+        }
+    }, []);
 
-const Application = () => {
-    const [state, setTest] = useState('--initial--')
     return <>
-        <h1>{state}</h1>
-        <button onClick={
-            () => fetch('/test')
-                .then(res => res.json())
-                .then(data =>{ 
-                    setTest(data.hellow)
-                })
-        }>Test API</button>
+    { !state ? "---" : <Board board={state.getBoard(14)}/>  }
     </>
-}
+})
 
 ReactDOM.render(
     <Application />,
