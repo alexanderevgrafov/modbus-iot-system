@@ -10,7 +10,7 @@ const fastify = require('fastify')({
 const LOOP_PERIOD = 3500;
 const SERVER_PORT = 3003;
 //const SERIAL_PORT = '/dev/serial0';
-const SERIAL_PORT = 'COM6';
+const SERIAL_PORT = 'COM5';
 //const SERIAL_PORT = '/dev/ttyUSB0';
 //const serialPort = new SerialPort(SERIAL_PORT, {baudRate: 9600});
 const master = new ModbusRTU();
@@ -31,7 +31,7 @@ function setup() {
     webserverSetup();
 
     master.setID(14);
-    master.setTimeout(1000);
+    master.setTimeout(4000);
 
   });
 
@@ -45,6 +45,7 @@ async function loop() {
   await master.readInputRegisters(0, 16)
     .then(res => console.log("BusRet:", res.data.join(',')))
     .catch(console.error);
+  
 }
 
 function sleep(millis) {

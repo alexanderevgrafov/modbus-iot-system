@@ -1,12 +1,14 @@
 import { makeObservable, observable, action } from "mobx"
 
+const serverErrorCatch = x=>{if (!x.ok){ throw('Server error:' + x.message) }}
+
 class PinConfigModel {
     pin = 0
     read = false
     write = false
     addr = 0
 
-    constructor(values) {
+    constructor(v) {
         makeObservable(this, {
             read: observable,
             write: observable,
@@ -16,7 +18,7 @@ class PinConfigModel {
             setAddr: action
         });
 
-        values && Object.assign(this, values);
+        v && Object.assign(this, v);
     }
 
     setRead(x) {
@@ -30,8 +32,8 @@ class PinConfigModel {
     }
 
     setAddr(x) {
-        x = parseInt(x) || 0;
-        this.addr = Math.min(7 - this.pin, Math.max(x, -this.pin));
+        x = Math.min(7, Math.max(parseInt(x) || 0, 0));
+        this.addr = x > 0 ? x - this.pin - 1 : 0;
     }
 }
 
@@ -46,8 +48,28 @@ class BoardConfigModel {
         makeObservable(this);
     }
 
-    save() {
-        this._parent.updateBoardConfig();
+    @action
+    setFromMasks({ read, write, addr }) {
+        _.each(_.range(0, 8), pin => {
+            this.pins[pin].read = !!(read & (1 << pin));
+            this.pins[pin].write = !!(write & (1 << pin));
+            this.pins[pin].addr = (addr >> (pin * 4)) & 0xF;
+        })
+    }
+
+    update() {
+        const data = { read: 0, write: 0, addr: 0 };
+
+        _.each(_.range(0, 8), pin => {
+            data.read |= this.pins[pin].read ? (1 << pin) : 0;
+            data.write |= this.pins[pin].write ? (1 << pin) : 0;
+            data.addr |= (this.pins[pin].addr & 0xF) << (4 * pin);
+        })
+
+        fetch("/config/" + this._parent.bid, { method: 'post', body: JSON.stringify(data) })
+            .then(x => x.json())
+            .then(serverErrorCatch)
+            .catch(e => console.error(e));
     }
 }
 
@@ -58,13 +80,32 @@ class BoardDataModel {
         makeObservable(this);
         this._parent = parent;
         //_.each(_.range(0, 8), pin =>        this.pins.push(false)    );
-
     }
 
     @action
     togglePin(pin) {
-        this.pins.splice(pin, 1, !this.pins[pin] ? 1:0 );
-        this._parent.updateBoardData();
+        this.pins.splice(pin, 1, !this.pins[pin] ? 1 : 0);
+        this.update();
+    }
+
+    @action
+    setFromMasks({ pins }) {
+        _.each(_.range(0, 8), pin => {
+            this.pins[pin] = !!(pins & (1 << pin));
+        })
+    }
+
+    update() {
+        let pins = 0;
+
+        _.each(_.range(0, 8), pin => {
+            pins |= this.pins[pin] ? (1 << pin) : 0;
+        })
+
+        fetch("/data/" + this._parent.bid, { method: 'post', body: JSON.stringify({ pins }) })
+            .then(x => x.json())
+            .then(serverErrorCatch)
+            .catch(e => console.error(e));
     }
 }
 
@@ -79,37 +120,35 @@ class BoardModel {
     }
 
     @action
-    loadConfig() {
-        new Promise(res => {
-            setTimeout(() => {
-                res(new BoardConfigModel(this));
-            }, 200);
-        })
+    fetchConfig() {
+        if (!this.config) {
+            this.config = new BoardConfigModel(this);
+        }
+        fetch("/config/" + this.bid)
+            .then(x => x.json())
             .then(x => {
-                this.config = x
+                serverErrorCatch(x);
+
+                this.config.setFromMasks(x.data);
             })
             .catch(e => console.error(e));
     }
 
     @action
-    loadData() {
-        new Promise(res => {
-            setTimeout(() => {
-                res(new BoardDataModel(this));
-            }, 300);
-        }).then(x => {
-                this.data = x
+    fetchData() {
+        if (!this.data) {
+            this.data = new BoardDataModel(this);
+        }
+        fetch("/data/" + this.bid)
+            .then(x => x.json())
+            .then(x => {
+                serverErrorCatch(x);
+                this.data.setFromMasks(x.data);
             })
             .catch(e => console.error(e));
     }
 
-    updateBoardConfig() {
-        console.log("Write CONFIG to ", this.bid, this.config);
-    }
 
-    updateBoardData() {
-        console.log("Write data to ", this.bid, this.data.pins.join("|"));
-    }
 }
 
 export { PinConfigModel, BoardConfigModel, BoardDataModel, BoardModel };

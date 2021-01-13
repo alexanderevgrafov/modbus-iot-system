@@ -22,23 +22,23 @@ MyDebug debug;
 class SmartHomeStruct {
  private:
  public:
-  uint16_t d_maskRead;  //0.
-  uint16_t d_maskWrite; //1.
-  uint16_t a_maskRead;  //2.
-  uint16_t a_maskWrite;  //3.
+  uint16_t d_maskRead;    //0.
+  uint16_t d_maskWrite;   //1.
+  uint16_t a_maskRead;    //2.
+  uint16_t a_maskWrite;   //3.
   uint32_t d_copyOffset;  //4. 4 bits per each address, 8 pins supported in total
-  uint32_t a_copyOffset;  //5.
-  uint32_t reserved1;  
-  uint32_t reserved2;  
-  uint32_t reserved3;  
-  uint32_t reserved4;  
+  uint32_t a_copyOffset;  //6.
+  uint32_t reserved1;     //8
+  uint32_t reserved2;     //10
+  uint32_t reserved3;     //12
+  uint32_t reserved4;     //14
 
-  uint16_t bits;  //10.
-  uint16_t pin_bits; //11.
+  uint16_t bits;      //16.
+  uint16_t pin_bits;  //17.
 
-  uint16_t words[8];  //12. supported 8 analog pins
-  uint16_t pin_words[8];  //20. reservation for possible future
-  uint16_t reserved[16];  //28. reservation for possible future
+  uint16_t words[8];      //18. supported 8 analog pins
+  uint16_t pin_words[8];  //26. reservation for possible future
+  uint16_t reserved[16];  //34. reservation for possible future
 
   uint16_t lastConfigCrc;
   uint16_t lastDataCrc;
@@ -51,10 +51,10 @@ class SmartHomeStruct {
 
   bool isPin(PIN_MODE pinMode, PIN_TYPE pinType, uint8_t index);
 
- // uint16_t getDataBits() { return this->bits; }
- // uint16_t *getDataWords() { return this->words; }
+  // uint16_t getDataBits() { return this->bits; }
+  // uint16_t *getDataWords() { return this->words; }
   void setAllData(uint16_t bits /*, uint16_t * words*/);
-  void setBit(uint16_t * bits, uint8_t bit, uint8_t val);
+  void setBit(uint16_t *bits, uint8_t bit, uint8_t val);
   //void setWord(uint8_t bit, uint16_t val);
 
   void readPins();
@@ -77,19 +77,19 @@ void SmartHomeStruct::setupPins() {
   for (int i = 0; i < 8; i++) {
     if (this->isPin(PIN_READABLE, PIN_DIGITAL, i)) {
       pinMode(STARTING_DIGITAL_PIN + i, INPUT);
-      debug.log("dPin %d is set IN", STARTING_DIGITAL_PIN + i);
+      //debug.log("dPin %d is set IN", STARTING_DIGITAL_PIN + i);
     }
     if (this->isPin(PIN_WRITABLE, PIN_DIGITAL, i)) {
       pinMode(STARTING_DIGITAL_PIN + i, OUTPUT);
-      debug.log("dPin %d is set OUT", STARTING_DIGITAL_PIN + i);
+      //debug.log("dPin %d is set OUT", STARTING_DIGITAL_PIN + i);
     }
     if (this->isPin(PIN_READABLE, PIN_ANALOG, i)) {
       pinMode(STARTING_ANALOG_PIN + i, INPUT);
-      debug.log("aPin %d is set IN", STARTING_ANALOG_PIN + i);
+      //debug.log("aPin %d is set IN", STARTING_ANALOG_PIN + i);
     }
     if (this->isPin(PIN_WRITABLE, PIN_ANALOG, i)) {
       pinMode(STARTING_ANALOG_PIN + i, OUTPUT);
-      debug.log("aPin %d is set OUT", STARTING_ANALOG_PIN + i);
+      //    debug.log("aPin %d is set OUT", STARTING_ANALOG_PIN + i);
     }
   }
 }
@@ -113,7 +113,7 @@ void SmartHomeStruct::readPins() {
   }
 }
 void SmartHomeStruct::writePins() {
- // uint16_t bits = this->getDataBits();
+  // uint16_t bits = this->getDataBits();
   //  uint16_t *words = this->getDataWords();
   uint8_t data;
   uint8_t pin;
@@ -135,7 +135,7 @@ void SmartHomeStruct::writePins() {
       //   debug.log("Set coil: %ld %ld %ld", i, bits, data);
 
       digitalWrite(pin, data);
-      debug.log("Coil %ld is SET as %ld", pin, data);
+      //debug.log("Coil %ld is SET as %ld", pin, data);
     }
     // if (this->isPin(PIN_WRITABLE, PIN_ANALOG, i)) {
     //   pin = STARTING_ANALOG_PIN + i;
@@ -159,7 +159,7 @@ void SmartHomeStruct::copyData() {
       if (addr >= 0 && addr < 8) {
         this->setBit(&this->bits, addr, this->pin_bits & (1 << i) ? 1 : 0);
       } else {
-        debug.log("Digital copy addr %ld is out of range (%ld)", i, addr);
+        //        debug.log("Digital copy addr %ld is out of range (%ld)", i, addr);
       }
     }
 
@@ -213,7 +213,7 @@ void SmartHomeStruct::setAllData(uint16_t bits /*, uint16_t * words*/) {
   this->bits = bits;
   // TOO: Words is not yet implemented
 }
-void SmartHomeStruct::setBit(uint16_t * bits, uint8_t bit, uint8_t val) {
+void SmartHomeStruct::setBit(uint16_t *bits, uint8_t bit, uint8_t val) {
   if (val) {
     *bits |= 1 << bit;
   } else {
