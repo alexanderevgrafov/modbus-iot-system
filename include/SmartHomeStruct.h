@@ -112,6 +112,7 @@ void SmartHomeStruct::readPins() {
     // }
   }
 }
+
 void SmartHomeStruct::writePins() {
   // uint16_t bits = this->getDataBits();
   //  uint16_t *words = this->getDataWords();
@@ -144,6 +145,7 @@ void SmartHomeStruct::writePins() {
     // }
   }
 }
+
 void SmartHomeStruct::copyData() {
   //uint16_t bits = this->getDataBits();
   // uint16_t *words = this->getDataWords();
@@ -194,8 +196,7 @@ uint16_t SmartHomeStruct::configCrc() {
   return CRC16.ccitt((uint8_t *)buf, 16);
 }
 
-bool SmartHomeStruct::isPin(PIN_MODE pinMode, PIN_TYPE pinType,
-                            uint8_t index) {
+bool SmartHomeStruct::isPin(PIN_MODE pinMode, PIN_TYPE pinType, uint8_t index) {
   uint16_t mask;
 
   if (index > 7) {
@@ -211,8 +212,9 @@ bool SmartHomeStruct::isPin(PIN_MODE pinMode, PIN_TYPE pinType,
 
 void SmartHomeStruct::setAllData(uint16_t bits /*, uint16_t * words*/) {
   this->bits = bits;
-  // TOO: Words is not yet implemented
+  // TODO: Words is not yet implemented
 }
+
 void SmartHomeStruct::setBit(uint16_t *bits, uint8_t bit, uint8_t val) {
   if (val) {
     *bits |= 1 << bit;
