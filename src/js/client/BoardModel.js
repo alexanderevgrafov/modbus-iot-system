@@ -32,7 +32,7 @@ class PinConfigModel {
     }
 
     setAddr(x) {
-        x = Math.min(7, Math.max(parseInt(x) || 0, 0));
+        x = Math.min(8, Math.max(parseInt(x) || 0, 0));
         this.addr = x > 0 ? x - this.pin - 1 : 0;
     }
 }
