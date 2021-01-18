@@ -20,20 +20,18 @@ FastCRC16 CRC16;
 #define STARTING_ANALOG_PIN 14
 
 struct SmartHomeConfig {
-  uint16_t slaveID;       //0
-  uint16_t startingPins;  //1.
-  uint16_t d_maskRead;    //2.
-  uint16_t d_maskWrite;   //3.
-  uint16_t a_maskRead;    //4.
-  uint16_t a_maskWrite;   //5.
-  uint32_t d_copyOffset;  //6. 4 bits per each address, 8 pins supported in total
-  uint32_t a_copyOffset;  //8.
-  uint32_t reserved1;     //10
-  uint32_t reserved2;     //12
-  uint32_t reserved3;     //14
-  uint32_t reserved4;     //16
-  // TODO: find a way to add config struct size into config, to pass it to server to let server know where data begins
-  /* data */
+  uint16_t slaveID;       //1. 1- because there is one word before config struct
+  uint16_t startingPin;   //2.
+  uint16_t d_maskRead;    //3.
+  uint16_t d_maskWrite;   //4.
+  uint16_t a_maskRead;    //5.
+  uint16_t a_maskWrite;   //6.
+  uint32_t d_copyOffset;  //7. 4 bits per each address, 8 pins supported in total
+  uint32_t a_copyOffset;  //9.
+  uint32_t reserved1;     //11
+  uint32_t reserved2;     //13
+  uint32_t reserved3;     //15
+  uint32_t reserved4;     //17
 };
 
 struct SmartHomeData {
@@ -91,27 +89,30 @@ class SmartHomeStruct {
 SmartHomeStruct::SmartHomeStruct() {
   this->configSize = sizeof(SmartHomeConfig);
   this->config.slaveID = DEFAULT_SLAVE_ID;
-  this->config.startingPins = STARTING_DIGITAL_PIN;
+  this->config.startingPin = STARTING_DIGITAL_PIN;
 }
 
 void SmartHomeStruct::onConfigChange(Modbus *slave) {
+  uint8_t pin;
   for (int i = 0; i < 8; i++) {
+    pin = this->config.startingPin + i;
+
     if (this->isPin(PIN_READABLE, PIN_DIGITAL, i)) {
-      pinMode(STARTING_DIGITAL_PIN + i, INPUT);
+      pinMode(pin, INPUT);
       //debug.log("dPin %d is set IN", STARTING_DIGITAL_PIN + i);
     }
     if (this->isPin(PIN_WRITABLE, PIN_DIGITAL, i)) {
-      pinMode(STARTING_DIGITAL_PIN + i, OUTPUT);
+      pinMode(pin, OUTPUT);
       //debug.log("dPin %d is set OUT", STARTING_DIGITAL_PIN + i);
     }
-    if (this->isPin(PIN_READABLE, PIN_ANALOG, i)) {
-      pinMode(STARTING_ANALOG_PIN + i, INPUT);
-      //debug.log("aPin %d is set IN", STARTING_ANALOG_PIN + i);
-    }
-    if (this->isPin(PIN_WRITABLE, PIN_ANALOG, i)) {
-      pinMode(STARTING_ANALOG_PIN + i, OUTPUT);
-      //    debug.log("aPin %d is set OUT", STARTING_ANALOG_PIN + i);
-    }
+//    if (this->isPin(PIN_READABLE, PIN_ANALOG, i)) {
+//      pinMode(STARTING_ANALOG_PIN + i, INPUT);
+//      //debug.log("aPin %d is set IN", STARTING_ANALOG_PIN + i);
+//    }
+//    if (this->isPin(PIN_WRITABLE, PIN_ANALOG, i)) {
+//      pinMode(STARTING_ANALOG_PIN + i, OUTPUT);
+//      //    debug.log("aPin %d is set OUT", STARTING_ANALOG_PIN + i);
+//    }
   }
 
   slave->setID(this->config.slaveID);
@@ -123,7 +124,7 @@ void SmartHomeStruct::readPins() {
 
   for (int i = 0; i < 8; i++) {
     if (this->isPin(PIN_READABLE, PIN_DIGITAL, i)) {
-      pin = STARTING_DIGITAL_PIN + i;
+      pin = this->config.startingPin + i;
       data = digitalRead(pin);
       //   debug.log("Coil %ld data read = %ld", pin, data);
       this->setBit(&this->data.pin_bits, i, data);
@@ -144,7 +145,7 @@ void SmartHomeStruct::writePins() {
 
   for (int i = 0; i < 8; i++) {
     if (this->isPin(PIN_WRITABLE, PIN_DIGITAL, i)) {
-      pin = STARTING_DIGITAL_PIN + i;
+      pin = this->config.startingPin + i;
       //   Serial.print("[");
       //   Serial.print(bits);
       //   Serial.print("|");

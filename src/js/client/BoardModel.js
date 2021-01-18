@@ -38,6 +38,7 @@ class PinConfigModel {
 }
 
 class BoardConfigModel {
+    @observable startingPin = 0;
     @observable pins = []
 
     constructor(parent) {
@@ -74,12 +75,12 @@ class BoardConfigModel {
 }
 
 class BoardDataModel {
+    @observable addrOffset = 0;
     @observable pins = [0, 0, 0, 0, 0, 0, 0, 0]
 
     constructor(parent) {
         makeObservable(this);
         this._parent = parent;
-        //_.each(_.range(0, 8), pin =>        this.pins.push(false)    );
     }
 
     @action
@@ -110,45 +111,49 @@ class BoardDataModel {
 }
 
 class BoardModel {
-    bid = 0
+    @observable bid = 0;
     @observable config = null;
     @observable data = null;
 
     constructor(bid) {
         this.bid = bid;
         makeObservable(this);
+        this.data = new BoardDataModel(this);
+        this.config = new BoardConfigModel(this);
+    }
+
+    @action
+    setNewId( bid ) {
+        this.bid = bid;
     }
 
     @action
     fetchConfig() {
-        if (!this.config) {
-            this.config = new BoardConfigModel(this);
-        }
-        fetch("/config/" + this.bid)
+        return fetch("/config/" + this.bid)
             .then(x => x.json())
             .then(x => {
                 serverErrorCatch(x);
-
                 this.config.setFromMasks(x.data);
+                this.data.addrOffset = x.data.dataOffset;
             })
             .catch(e => console.error(e));
     }
 
     @action
     fetchData() {
-        if (!this.data) {
-            this.data = new BoardDataModel(this);
+        if (!this.data.addrOffset) {
+            throw new Error("Data offset need to be set before data fetch");
         }
-        fetch("/data/" + this.bid)
+
+        return fetch("/data/" + this.bid + "/" + this.data.addrOffset)
             .then(x => x.json())
             .then(x => {
                 serverErrorCatch(x);
                 this.data.setFromMasks(x.data);
+                this.config.startingPin = x.data.startingPin;
             })
             .catch(e => console.error(e));
     }
-
-
 }
 
 export { PinConfigModel, BoardConfigModel, BoardDataModel, BoardModel };

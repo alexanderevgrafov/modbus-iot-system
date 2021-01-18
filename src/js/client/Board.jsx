@@ -8,8 +8,7 @@ const ConfigLine = observer(({ config }) => <tr>
     <td onClick={() => config.setRead(!config.read)} >D{config.pin + 1}{config.read && '#'}</td>
     <td><input onChange={e => config.setAddr(e.target.value)} value={config.addr ? config.pin + config.addr + 1 : 0} /></td>
     <td onClick={() => config.setWrite(!config.write)} >D{config.pin + 1}{config.write && '#'}</td>
-</tr>
-);
+</tr>);
 
 const Configurator = observer(({ config }) => {
     return <>
@@ -32,7 +31,7 @@ const ControlPanel = observer(({ data, config }) => {
     return <>
         { (data && config) ? <div>
             {_.map(_.range(0, 8), pin =>
-            config.pins[pin].write ? 
+            config.pins[pin].write ?
                 <button onClick={() => data.togglePin(pin)} key={pin} >D{pin + 1} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
             )}
         </div> : "Control panel be here"}
@@ -41,10 +40,11 @@ const ControlPanel = observer(({ data, config }) => {
 
 const Board = observer(({ board }) => {
     let pollInterval;
+
     useEffect(() => {
         if (board) {
-            board.fetchConfig();
-            board.fetchData();
+            board.fetchConfig()
+              .then(board.fetchData);
             pollInterval = setInterval( ()=>board.fetchData(), 4500);
         }
 
@@ -53,11 +53,13 @@ const Board = observer(({ board }) => {
             clearInterval(pollInterval);
         }
     }, [board]);
-    return board ? <div>
-        <h3>Board #{board.bid}</h3>
+
+    return !board ?  "---" :
+      <div>
+        <h3>Board <input value={board.bid} onChange={e=>board.setNewId(e.target.value)}/></h3>
         <Configurator config={board.config} />
         <ControlPanel data={board.data}  config={board.config} />
-    </div> : "---"
+    </div>
 })
 
 export { Board }
