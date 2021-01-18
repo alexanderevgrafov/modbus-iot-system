@@ -1,4 +1,5 @@
 const BITS_ADDR = 16;
+const SLAVE_ID_ADDR = 0;
 
 async function routes(fastify, options) {
 
@@ -62,9 +63,10 @@ async function routes(fastify, options) {
     }
   })
 
-  fastify.get('/data/:id', async request => {
+  fastify.get('/data/:id/:addr', async request => {
+    const { id, addr } = request.params;
     try {
-      const pins = await modbusQuene(parseInt(request.params.id), () => master.readHoldingRegisters(BITS_ADDR, 1))
+      const pins = await modbusQuene(parseInt(id), () => master.readHoldingRegisters(parseInt(addr), 1))
         .then(x => x.data[0]);
       return { ok: true, data: { pins } };
     } catch (err) {
@@ -78,7 +80,7 @@ async function routes(fastify, options) {
     const words = [parseInt(read), parseInt(write), 0, 0, _addr & 0xFFFF, _addr >> 16];
 
     try {
-      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(0, words))
+      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(1, words))
       return { ok: true };
     } catch (err) {
       return { ok: false, message: err.message || err };
@@ -86,14 +88,27 @@ async function routes(fastify, options) {
   })
 
   fastify.post('/data/:id', async request => {
-    const { pins } = JSON.parse(request.body);
-    const arr = [parseInt(pins)];
+    const { pins, addr } = JSON.parse(request.body);
+    const arr = [parseInt(pins), parseInt(addr)];
 
     try {
-      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(BITS_ADDR, arr))
+      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(addr, arr))
       return { ok: true };
     } catch (err) {
       return { ok: false, message: err.message || err };
+    }
+  })
+  
+  fastify.post('/setid/:id', async request => {
+    const { newid } = JSON.parse(request.body);
+    const arr = [parseInt(newid)];
+    const {id } = request.params;
+
+    try {
+      await modbusQuene(parseInt(id), () => master.writeRegisters(SLAVE_ID_ADDR, arr))
+      return { ok: true, id: newid };
+    } catch (err) {
+      return { ok: false, id, message: err.message || err };
     }
   })
 

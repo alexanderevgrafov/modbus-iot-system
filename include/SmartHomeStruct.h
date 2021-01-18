@@ -2,7 +2,8 @@
 
 #include "Arduino.h"
 #include "FastCRC.h"
-#include "MyDebug.h"
+#include "ModbusRtu.h"
+//#include "MyDebug.h"
 
 enum PIN_TYPE { PIN_DIGITAL = 0,
                 PIN_ANALOG = 1 };
@@ -11,10 +12,38 @@ enum PIN_MODE { PIN_READABLE = 0,
                 PIN_WRITABLE = 1 };
 
 FastCRC16 CRC16;
-MyDebug debug;
+//MyDebug debug;
+
+#define DEFAULT_SLAVE_ID 222
 
 #define STARTING_DIGITAL_PIN 5
 #define STARTING_ANALOG_PIN 14
+
+struct SmartHomeConfig {
+  uint16_t slaveID;       //0
+  uint16_t startingPins;  //1.
+  uint16_t d_maskRead;    //2.
+  uint16_t d_maskWrite;   //3.
+  uint16_t a_maskRead;    //4.
+  uint16_t a_maskWrite;   //5.
+  uint32_t d_copyOffset;  //6. 4 bits per each address, 8 pins supported in total
+  uint32_t a_copyOffset;  //8.
+  uint32_t reserved1;     //10
+  uint32_t reserved2;     //12
+  uint32_t reserved3;     //14
+  uint32_t reserved4;     //16
+  // TODO: find a way to add config struct size into config, to pass it to server to let server know where data begins
+  /* data */
+};
+
+struct SmartHomeData {
+  uint16_t bits;
+  uint16_t pin_bits;
+
+  uint16_t words[8];      //18. supported 8 analog pins
+  uint16_t pin_words[8];  //26. reservation for possible future
+  uint16_t reserved[16];  //34. reservation for possible future
+};
 
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
@@ -22,36 +51,23 @@ MyDebug debug;
 class SmartHomeStruct {
  private:
  public:
-  uint16_t d_maskRead;    //0.
-  uint16_t d_maskWrite;   //1.
-  uint16_t a_maskRead;    //2.
-  uint16_t a_maskWrite;   //3.
-  uint32_t d_copyOffset;  //4. 4 bits per each address, 8 pins supported in total
-  uint32_t a_copyOffset;  //6.
-  uint32_t reserved1;     //8
-  uint32_t reserved2;     //10
-  uint32_t reserved3;     //12
-  uint32_t reserved4;     //14
-
-  uint16_t bits;      //16.
-  uint16_t pin_bits;  //17.
-
-  uint16_t words[8];      //18. supported 8 analog pins
-  uint16_t pin_words[8];  //26. reservation for possible future
-  uint16_t reserved[16];  //34. reservation for possible future
+  uint16_t configSize;
+  SmartHomeConfig config;
+  SmartHomeData data;
 
   uint16_t lastConfigCrc;
   uint16_t lastDataCrc;
   uint16_t lastPinsCrc;
 
+  SmartHomeStruct::SmartHomeStruct();
   void initConfig(uint16_t d_maskRead, uint16_t d_maskWrite,
                   uint16_t a_maskRead, uint16_t a_maskWrite,
                   uint32_t d_copyOffset, uint32_t a_copyOffset);
-  void setupPins();
+  void onConfigChange(Modbus *);
 
   bool isPin(PIN_MODE pinMode, PIN_TYPE pinType, uint8_t index);
 
-  // uint16_t getDataBits() { return this->bits; }
+  // uint16_t getDataBits() { return this->data.bits; }
   // uint16_t *getDataWords() { return this->words; }
   void setAllData(uint16_t bits /*, uint16_t * words*/);
   void setBit(uint16_t *bits, uint8_t bit, uint8_t val);
@@ -72,8 +88,13 @@ class SmartHomeStruct {
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
+SmartHomeStruct::SmartHomeStruct() {
+  this->configSize = sizeof(SmartHomeConfig);
+  this->config.slaveID = DEFAULT_SLAVE_ID;
+  this->config.startingPins = STARTING_DIGITAL_PIN;
+}
 
-void SmartHomeStruct::setupPins() {
+void SmartHomeStruct::onConfigChange(Modbus *slave) {
   for (int i = 0; i < 8; i++) {
     if (this->isPin(PIN_READABLE, PIN_DIGITAL, i)) {
       pinMode(STARTING_DIGITAL_PIN + i, INPUT);
@@ -92,6 +113,8 @@ void SmartHomeStruct::setupPins() {
       //    debug.log("aPin %d is set OUT", STARTING_ANALOG_PIN + i);
     }
   }
+
+  slave->setID(this->config.slaveID);
 }
 
 void SmartHomeStruct::readPins() {
@@ -103,7 +126,7 @@ void SmartHomeStruct::readPins() {
       pin = STARTING_DIGITAL_PIN + i;
       data = digitalRead(pin);
       //   debug.log("Coil %ld data read = %ld", pin, data);
-      this->setBit(&this->pin_bits, i, data);
+      this->setBit(&this->data.pin_bits, i, data);
     }
     // if (this->isPin(PIN_READABLE, PIN_ANALOG, i)) {
     //   pin = STARTING_ANALOG_PIN + i;
@@ -129,7 +152,7 @@ void SmartHomeStruct::writePins() {
       //         Serial.print("|");
       //   Serial.print(bits & (1 << i));
 
-      data = (this->bits & (1 << i)) ? 1 : 0;
+      data = (this->data.bits & (1 << i)) ? 1 : 0;
       //         Serial.print("|");
       //   Serial.print(data);
       //   Serial.print("] ");
@@ -153,13 +176,13 @@ void SmartHomeStruct::copyData() {
   //   debug.log("Start bits copy routine %ld", bits);
 
   for (int i = 0; i < 8; i++) {
-    int8_t addr = this->d_copyOffset >> (i * 4) & 0xF;
+    int8_t addr = this->config.d_copyOffset >> (i * 4) & 0xF;
 
     if (addr) {
       addr = i + (addr & 0x7) * (addr & 0x8 ? -1 : 1);
 
       if (addr >= 0 && addr < 8) {
-        this->setBit(&this->bits, addr, this->pin_bits & (1 << i) ? 1 : 0);
+        this->setBit(&this->data.bits, addr, this->data.pin_bits & (1 << i) ? 1 : 0);
       } else {
         //        debug.log("Digital copy addr %ld is out of range (%ld)", i, addr);
       }
@@ -174,24 +197,24 @@ void SmartHomeStruct::copyData() {
 void SmartHomeStruct::initConfig(uint16_t d_maskRead, uint16_t d_maskWrite,
                                  uint16_t a_maskRead, uint16_t a_maskWrite,
                                  uint32_t d_copyOffset, uint32_t a_copyOffset) {
-  this->d_maskRead = d_maskRead;
-  this->d_maskWrite = d_maskWrite;
-  this->a_maskRead = a_maskRead;
-  this->a_maskWrite = a_maskWrite;
+  this->config.d_maskRead = d_maskRead;
+  this->config.d_maskWrite = d_maskWrite;
+  this->config.a_maskRead = a_maskRead;
+  this->config.a_maskWrite = a_maskWrite;
 
-  this->d_copyOffset = d_copyOffset;
-  this->a_copyOffset = a_copyOffset;
+  this->config.d_copyOffset = d_copyOffset;
+  this->config.a_copyOffset = a_copyOffset;
 }
 
 uint16_t SmartHomeStruct::configCrc() {
-  uint16_t buf[8] = {this->d_maskRead,
-                     this->d_maskWrite,
-                     this->a_maskRead,
-                     this->a_maskWrite,
-                     (uint16_t)(this->d_copyOffset >> 16),
-                     (uint16_t)(this->d_copyOffset),
-                     (uint16_t)(this->a_copyOffset >> 16),
-                     (uint16_t)(this->a_copyOffset)};
+  uint16_t buf[8] = {this->config.d_maskRead,
+                     this->config.d_maskWrite,
+                     this->config.a_maskRead,
+                     this->config.a_maskWrite,
+                     (uint16_t)(this->config.d_copyOffset >> 16),
+                     (uint16_t)(this->config.d_copyOffset),
+                     (uint16_t)(this->config.a_copyOffset >> 16),
+                     (uint16_t)(this->config.a_copyOffset)};
 
   return CRC16.ccitt((uint8_t *)buf, 16);
 }
@@ -204,14 +227,14 @@ bool SmartHomeStruct::isPin(PIN_MODE pinMode, PIN_TYPE pinType, uint8_t index) {
   }
 
   mask = pinMode == PIN_READABLE
-             ? (pinType == PIN_DIGITAL ? this->d_maskRead : this->a_maskRead)
-             : (pinType == PIN_DIGITAL ? this->d_maskWrite : this->a_maskWrite);
+             ? (pinType == PIN_DIGITAL ? this->config.d_maskRead : this->config.a_maskRead)
+             : (pinType == PIN_DIGITAL ? this->config.d_maskWrite : this->config.a_maskWrite);
 
   return (1 << index & mask);
 };
 
 void SmartHomeStruct::setAllData(uint16_t bits /*, uint16_t * words*/) {
-  this->bits = bits;
+  this->data.bits = bits;
   // TODO: Words is not yet implemented
 }
 
@@ -242,9 +265,9 @@ bool SmartHomeStruct::configIsChanged() {
 }
 
 bool SmartHomeStruct::dataIsChanged() {
-  return this->hasChanged(&this->lastDataCrc, this->bits, true);
+  return this->hasChanged(&this->lastDataCrc, this->data.bits, true);
 }
 
 bool SmartHomeStruct::pinsAreChanged() {
-  return this->hasChanged(&this->lastPinsCrc, this->pin_bits, true);
+  return this->hasChanged(&this->lastPinsCrc, this->data.pin_bits, true);
 }

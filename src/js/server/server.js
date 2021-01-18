@@ -15,6 +15,7 @@ const SERIAL_PORT = 'COM6';
 //const serialPort = new SerialPort(SERIAL_PORT, {baudRate: 9600});
 const master = new ModbusRTU();
 
+
 SerialPort.list().then(function (ports) {
   ports.forEach(function (port) {
     console.log(`Port: ${port.path} (${port.manufacturer})`);
