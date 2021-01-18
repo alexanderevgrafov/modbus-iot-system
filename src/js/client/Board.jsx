@@ -4,24 +4,29 @@ import { observer } from "mobx-react" // Or "mobx-react".
 
 //const STARTING_DIGITAL_PIN = 5;
 
-const ConfigLine = observer(({ config }) => <tr>
-    <td onClick={() => config.setRead(!config.read)} >D{config.pin + 1}{config.read && '#'}</td>
-    <td><input onChange={e => config.setAddr(e.target.value)} value={config.addr ? config.pin + config.addr + 1 : 0} /></td>
-    <td onClick={() => config.setWrite(!config.write)} >D{config.pin + 1}{config.write && '#'}</td>
+const ConfigLine = observer(({ config, startingPin }) => <tr>
+    <td onClick={() => config.setRead(!config.read)} >D{startingPin + config.pin}{config.read && '#'}</td>
+    <td><input onChange={e => config.setAddr(e.target.value)} value={config.addr ? startingPin + config.pin + config.addr : 0} /></td>
+    <td onClick={() => config.setWrite(!config.write)} >D{startingPin + config.pin}{config.write && '#'}</td>
 </tr>);
 
 const Configurator = observer(({ config }) => {
     return <>
         { !config ? "Configurator will be here" :
             <>
+                ID: <input value={config.boardId} onChange={e => config.setNewId(e.target.value)} />
+            StPin: <input value={config.startingPin} onChange={e => config.setNewStPin(e.target.value)} />
                 <table>
                     <tbody>
                         {_.map(_.range(0, 8), pin =>
-                            <ConfigLine config={config.pins[pin]} key={pin} />
+                            <ConfigLine config={config.pins[pin]} startingPin={config.startingPin} key={pin} />
                         )}
                     </tbody>
                 </table>
-                <button onClick={() => config.update()}>Save config to board</button>
+                {
+                    config.loaded ? <button onClick={() => config.update()}>Save config to board</button>
+                        : <button onClick={() => config._parent.fetchConfig(config.boardId)}>Load config</button>
+                }
             </>
         }
     </>
@@ -31,8 +36,8 @@ const ControlPanel = observer(({ data, config }) => {
     return <>
         { (data && config) ? <div>
             {_.map(_.range(0, 8), pin =>
-            config.pins[pin].write ?
-                <button onClick={() => data.togglePin(pin)} key={pin} >D{pin + 1} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
+                config.pins[pin].write ?
+                    <button onClick={() => data.togglePin(pin)} key={pin} >D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
             )}
         </div> : "Control panel be here"}
     </>
@@ -44,8 +49,8 @@ const Board = observer(({ board }) => {
     useEffect(() => {
         if (board) {
             board.fetchConfig()
-              .then(board.fetchData);
-            pollInterval = setInterval( ()=>board.fetchData(), 4500);
+                .then(() => board.fetchData());
+            pollInterval = setInterval(() => board.fetchData(), 9000);
         }
 
         return () => {
@@ -54,12 +59,12 @@ const Board = observer(({ board }) => {
         }
     }, [board]);
 
-    return !board ?  "---" :
-      <div>
-        <h3>Board <input value={board.bid} onChange={e=>board.setNewId(e.target.value)}/></h3>
-        <Configurator config={board.config} />
-        <ControlPanel data={board.data}  config={board.config} />
-    </div>
+    return !board ? "---" :
+        <div>
+            <h3>Board #{board.bid}</h3>
+            <Configurator config={board.config} />
+            <ControlPanel data={board.data} config={board.config} />
+        </div>
 })
 
 export { Board }

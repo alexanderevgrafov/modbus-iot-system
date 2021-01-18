@@ -1,50 +1,51 @@
 import { makeObservable, observable, action } from "mobx"
 
-const serverErrorCatch = x=>{if (!x.ok){ throw('Server error:' + x.message) }}
+const serverErrorCatch = x => { if (!x.ok) { throw ('Server error:' + x.message) } return x; }
 
 class PinConfigModel {
     pin = 0
-    read = false
-    write = false
-    addr = 0
+    @observable read = false
+    @observable write = false
+    @observable addr = 0
 
-    constructor(v) {
-        makeObservable(this, {
-            read: observable,
-            write: observable,
-            addr: observable,
-            setRead: action,
-            setWrite: action,
-            setAddr: action
-        });
-
+    constructor(_parent, v) {
         v && Object.assign(this, v);
+        this._parent = _parent;
+
+        makeObservable(this);
     }
 
+    @action
     setRead(x) {
         this.read = x;
         x && (this.write = false);
     }
 
+    @action
     setWrite(x) {
         this.write = x;
         x && (this.read = false);
     }
 
+    @action
     setAddr(x) {
-        x = Math.min(8, Math.max(parseInt(x) || 0, 0));
-        this.addr = x > 0 ? x - this.pin - 1 : 0;
+        const { startingPin } = this._parent;
+        x = parseInt(x) || 0
+        x = x > 0 && Math.min(startingPin + 7, Math.max(x, startingPin));
+        this.addr =  x > 0 ? x - this.pin - startingPin : 0;
     }
 }
 
 class BoardConfigModel {
+    @observable loaded = false;
+    @observable boardId = 0;
     @observable startingPin = 0;
     @observable pins = []
 
     constructor(parent) {
         this._parent = parent;
         _.each(_.range(0, 8), pin =>
-            this.pins[pin] = new PinConfigModel({ pin })
+            this.pins[pin] = new PinConfigModel(this, { pin })
         )
         makeObservable(this);
     }
@@ -58,8 +59,16 @@ class BoardConfigModel {
         })
     }
 
+    @action
+    setNewId(x) { this.boardId = parseInt(x); }
+
+    @action
+    setNewStPin(x) { this.startingPin = parseInt(x); }
+
+    @action setLoaded(x) { this.loaded = !!x; }
+
     update() {
-        const data = { read: 0, write: 0, addr: 0 };
+        const data = { read: 0, write: 0, addr: 0, bid: this.boardId, startingPin: this.startingPin };
 
         _.each(_.range(0, 8), pin => {
             data.read |= this.pins[pin].read ? (1 << pin) : 0;
@@ -70,6 +79,7 @@ class BoardConfigModel {
         fetch("/config/" + this._parent.bid, { method: 'post', body: JSON.stringify(data) })
             .then(x => x.json())
             .then(serverErrorCatch)
+            .then(x => this._parent.bid = this.boardId) // Works only if no error (and if was actual change)
             .catch(e => console.error(e));
     }
 }
@@ -96,6 +106,9 @@ class BoardDataModel {
         })
     }
 
+    @action
+    setAddrOffset(x) { this.addrOffset = parseInt(x); }
+
     update() {
         let pins = 0;
 
@@ -103,7 +116,7 @@ class BoardDataModel {
             pins |= this.pins[pin] ? (1 << pin) : 0;
         })
 
-        fetch("/data/" + this._parent.bid, { method: 'post', body: JSON.stringify({ pins }) })
+        fetch("/data/" + this._parent.bid, { method: 'post', body: JSON.stringify({ pins, addr: this.addrOffset }) })
             .then(x => x.json())
             .then(serverErrorCatch)
             .catch(e => console.error(e));
@@ -120,23 +133,27 @@ class BoardModel {
         makeObservable(this);
         this.data = new BoardDataModel(this);
         this.config = new BoardConfigModel(this);
+        this.config.boardId = bid;
     }
 
     @action
-    setNewId( bid ) {
-        this.bid = bid;
-    }
+    fetchConfig(boardId) {
+        const bid = (boardId || this.bid);
 
-    @action
-    fetchConfig() {
-        return fetch("/config/" + this.bid)
+        return fetch("/config/" + bid)
             .then(x => x.json())
             .then(x => {
                 serverErrorCatch(x);
                 this.config.setFromMasks(x.data);
-                this.data.addrOffset = x.data.dataOffset;
+                this.config.setNewStPin(x.data.startingPin);
+                this.data.setAddrOffset(x.data.dataOffset);
+                this.config.setLoaded(true);
+                this.bid = bid;
             })
-            .catch(e => console.error(e));
+            .catch(e => {
+                console.error(e);
+                this.config.setLoaded(false);
+            });
     }
 
     @action
@@ -150,7 +167,6 @@ class BoardModel {
             .then(x => {
                 serverErrorCatch(x);
                 this.data.setFromMasks(x.data);
-                this.config.startingPin = x.data.startingPin;
             })
             .catch(e => console.error(e));
     }

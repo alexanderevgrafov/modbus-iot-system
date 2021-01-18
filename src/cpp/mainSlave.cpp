@@ -14,7 +14,7 @@
 #include "SmartHomeStruct.h"
 
 #define EEPROM_STORAGE_ADDR 0
-#define EEPROM_STORAGE_BYTES 16
+#define EEPROM_STORAGE_BYTES 20
 
 #if MY_SERIAL > 0
 SoftwareSerial mySerial(MY_SERIAL_RX, MY_SERIAL_TX);
@@ -29,11 +29,11 @@ void saveToEEPROM() {
   uint16_t crcFact = 0;
 
   for (byte i = 0; i < EEPROM_STORAGE_BYTES; i++) {
-    uint8_t byte = ((uint8_t*)&sHome)[i];
+    uint8_t byte = ((uint8_t*)&sHome.config)[i];
     EEPROM.write(EEPROM_STORAGE_ADDR + i, byte);
   }
 
-  crcFact = CRC16.ccitt((uint8_t*)&sHome, EEPROM_STORAGE_BYTES);
+  crcFact = CRC16.ccitt((uint8_t*)&sHome.config, EEPROM_STORAGE_BYTES);
   EEPROM.put(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcFact);
 }
 
@@ -49,7 +49,7 @@ bool restoreFromEEPROM() {
   EEPROM.get(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcRead);
 
   if (crcFact == crcRead) {
-    memcpy(&sHome, buff, EEPROM_STORAGE_BYTES);
+    memcpy(&sHome.config, buff, EEPROM_STORAGE_BYTES);
   }
 
   return (crcFact == crcRead);
@@ -79,9 +79,8 @@ void setup() {
 void loop() {
   unsigned long time = millis() / 1000;
 
-  if (!time % 5) {
+  if (!(time % 5)) {
     if (sHome.configIsChanged()) {
-      //    Serial.println("--Config chng");
       sHome.onConfigChange(&slave);
       saveToEEPROM();
     }

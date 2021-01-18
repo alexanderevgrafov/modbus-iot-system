@@ -19,7 +19,7 @@ const Application = observer(() => {
     }, []);
 
     return <>
-    { !state ? "---" : <Board board={state.getBoard(14)}/>  }
+    { !state ? "---" : <Board board={state.getBoard(222)}/>  }
     </>
 })
 

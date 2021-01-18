@@ -49,7 +49,7 @@ struct SmartHomeData {
 class SmartHomeStruct {
  private:
  public:
-  uint16_t configSize;
+  uint16_t dataOffset;
   SmartHomeConfig config;
   SmartHomeData data;
 
@@ -87,7 +87,7 @@ class SmartHomeStruct {
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 //_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
 SmartHomeStruct::SmartHomeStruct() {
-  this->configSize = sizeof(SmartHomeConfig);
+  this->dataOffset = sizeof(SmartHomeConfig) / 2 + 1;
   this->config.slaveID = DEFAULT_SLAVE_ID;
   this->config.startingPin = STARTING_DIGITAL_PIN;
 }
@@ -180,18 +180,20 @@ void SmartHomeStruct::copyData() {
     int8_t addr = this->config.d_copyOffset >> (i * 4) & 0xF;
 
     if (addr) {
+      uint16_t srcSet = this->isPin(PIN_READABLE, PIN_DIGITAL, i) ? this->data.pin_bits : this->data.bits;
+      bool bb = (bool)(srcSet & (1 << i));
       addr = i + (addr & 0x7) * (addr & 0x8 ? -1 : 1);
 
       if (addr >= 0 && addr < 8) {
-        this->setBit(&this->data.bits, addr, this->data.pin_bits & (1 << i) ? 1 : 0);
+//        this->setBit(&this->data.bits, addr, srcSet & (1 << i) ? 1 : 0);
+        this->setBit(&this->data.bits, addr, bb ? 1 : 0);
+
       } else {
         //        debug.log("Digital copy addr %ld is out of range (%ld)", i, addr);
       }
     }
-
     // TODO: implement Analog words copying....
   }
-
   //   debug.log("After data copy we have %ld", this->getDataBits());
 }
 
@@ -208,7 +210,9 @@ void SmartHomeStruct::initConfig(uint16_t d_maskRead, uint16_t d_maskWrite,
 }
 
 uint16_t SmartHomeStruct::configCrc() {
-  uint16_t buf[8] = {this->config.d_maskRead,
+  uint16_t buf[10] = {this->config.slaveID,
+                     this->config.startingPin,
+                     this->config.d_maskRead,
                      this->config.d_maskWrite,
                      this->config.a_maskRead,
                      this->config.a_maskWrite,
@@ -217,7 +221,7 @@ uint16_t SmartHomeStruct::configCrc() {
                      (uint16_t)(this->config.a_copyOffset >> 16),
                      (uint16_t)(this->config.a_copyOffset)};
 
-  return CRC16.ccitt((uint8_t *)buf, 16);
+  return CRC16.ccitt((uint8_t *)buf, sizeof(buf));
 }
 
 bool SmartHomeStruct::isPin(PIN_MODE pinMode, PIN_TYPE pinType, uint8_t index) {

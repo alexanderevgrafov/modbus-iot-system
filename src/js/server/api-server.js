@@ -77,12 +77,12 @@ async function routes(fastify, options) {
   })
 
   fastify.post('/config/:id', async request => {
-    const {read, write, addr} = JSON.parse(request.body);
+    const {read, write, addr, bid, startingPin} = JSON.parse(request.body);
     const _addr = parseInt(addr);
-    const words = [parseInt(read), parseInt(write), 0, 0, _addr & 0xFFFF, _addr >> 16];
+    const words = [bid, startingPin, parseInt(read), parseInt(write), 0, 0, _addr & 0xFFFF, _addr >> 16];
 
     try {
-      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(3, words)); // addr=2 to keep dataOffset&slaveId untouched
+      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(1, words)); 
       return {ok: true};
     } catch (err) {
       return {ok: false, message: err.message || err};
