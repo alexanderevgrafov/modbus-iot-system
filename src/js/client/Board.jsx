@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 import { observer } from "mobx-react" // Or "mobx-react".
-
-//const STARTING_DIGITAL_PIN = 5;
+import {appState} from './AppState';
 
 const ConfigLine = observer(({ config, startingPin }) => <tr>
     <td onClick={() => config.setRead(!config.read)} >D{startingPin + config.pin}{config.read && '#'}</td>
@@ -67,5 +66,10 @@ const Board = observer(({ board }) => {
         </div>
 })
 
-export { Board }
+const Boards = observer(() => <>{
+    _.map(_.keys(appState.boards), bid => <Board board={appState.getBoard(bid)} key={bid}/>)
+}
+</>)
+
+export { Board, Boards }
 

@@ -1,10 +1,12 @@
+const _ = require('lodash');
+const fs = require('fs');
+
 const BITS_ADDR = 16;
 const SLAVE_ID_ADDR = 1;
+const CONFIG_STORAGE_FILE = 'configStorage.json'
 
 async function routes(fastify, options) {
-
-  const {master} = options;
-
+  const {modServer} = options;
   let modbusCalls = 0;
 
   function waitModbusIdle() {
@@ -23,27 +25,28 @@ async function routes(fastify, options) {
   function modbusQuene(slaveId, cb) {
     return waitModbusIdle()
       .then(() => modbusCalls++)
-      .then(() => master.setID(parseInt(slaveId)))
+      .then(() => modServer.master.setID(parseInt(slaveId)))
       .then(cb)
       .finally(() => modbusCalls--)
   }
 
-  // fastify.get('/led', async request => {
-  //     const bits = parseInt(request.query.led);
+  const fastifyHandlers = [
+    'get', '/config/:id', getBoardConfig,
+    'get', '/data/:id/:addr', getBoardData,
+    'post', '/config/:id', setBoardConfig,
+    'post', '/data/:id', setBoardData,
+    'post', '/setid/:id', setBoardId,
+    'get', '/state', getSystemState,
+    'post', '/state', setSystemState,
+    'post', '/setport', setMasterPort
+  ];
 
-  //     await master.setID(14);
-  //     await master.writeRegister(8, bits)
-  //   //  .then(res => console.log("write res:", res))
-  //     .catch(console.error);
+  _.each(fastifyHandlers, ([method, url, func]) => fastify[method](url, func));
 
-  //     return {result: bits}
-  //   })
-
-
-  fastify.get('/config/:id', async request => {
+  async function getBoardConfig(request) {
     try {
       const data = await modbusQuene(parseInt(request.params.id),
-        () => master.readInputRegisters(0, 11))  //we load from zero to include dataOffset
+        () => modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset
         .then(res => {
           console.log('PR1:', res);
           const {data} = res;
@@ -63,74 +66,91 @@ async function routes(fastify, options) {
     } catch (err) {
       return {ok: false, message: err.message || err};
     }
-  })
+  }
 
-  fastify.get('/data/:id/:addr', async request => {
+  async function getBoardData(request) {
     const {id, addr} = request.params;
     try {
-      const pins = await modbusQuene(parseInt(id), () => master.readHoldingRegisters(parseInt(addr), 1))
+      const pins = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 1))
         .then(x => x.data[0]);
       return {ok: true, data: {pins}};
     } catch (err) {
       return {ok: false, message: err.message || err};
     }
-  })
+  }
 
-  fastify.post('/config/:id', async request => {
+  async function setBoardConfig(request) {
     const {read, write, addr, bid, startingPin} = JSON.parse(request.body);
     const _addr = parseInt(addr);
     const words = [bid, startingPin, parseInt(read), parseInt(write), 0, 0, _addr & 0xFFFF, _addr >> 16];
 
     try {
-      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(1, words)); 
+      await modbusQuene(parseInt(request.params.id), () => modServer.master.writeRegisters(1, words));
       return {ok: true};
     } catch (err) {
       return {ok: false, message: err.message || err};
     }
-  })
+  }
 
-  fastify.post('/data/:id', async request => {
+  async function setBoardData(request) {
     const {pins, addr} = JSON.parse(request.body);
     const arr = [parseInt(pins), parseInt(addr)];
 
     try {
-      await modbusQuene(parseInt(request.params.id), () => master.writeRegisters(addr, arr))
+      await modbusQuene(parseInt(request.params.id), () => modServer.master.writeRegisters(addr, arr))
       return {ok: true};
     } catch (err) {
       return {ok: false, message: err.message || err};
     }
-  })
+  }
 
-  fastify.post('/setid/:id', async request => {
+  async function setBoardId(request) {
     const {newid} = JSON.parse(request.body);
     const arr = [parseInt(newid)];
     const {id} = request.params;
 
     try {
-      await modbusQuene(parseInt(id), () => master.writeRegisters(SLAVE_ID_ADDR, arr))
+      await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(SLAVE_ID_ADDR, arr))
       return {ok: true, id: newid};
     } catch (err) {
       return {ok: false, id, message: err.message || err};
     }
-  })
+  }
 
-  /*
-      fastify.get('/animals', async request => {
-        const result = await collection.find().toArray()
-        if (result.length === 0) {
-          throw new Error('No documents found')
-        }
-        return result
-      })
+  async function getSystemState(request) {
+    try {
+      const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
+      data.ports = modServer.getAllPorts();
 
-      fastify.get('/animals/:animal', async request => {
-        const result = await collection.findOne({ animal: request.params.animal })
-        if (result === null) {
-          throw new Error('Invalid value')
-        }
-        return result
-      })
-      */
+      console.log('state is to LOAD: ', data);
+      return {ok: true, data: data};
+    } catch (err) {
+      return {ok: false, message: err.message || err};
+    }
+  }
+
+  async function setSystemState(request) {
+    const {data} = JSON.parse(request.body);
+    console.log('state is to save: ', data);
+
+    try {
+      fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(data))
+      return {ok: true};
+    } catch (err) {
+      return {ok: false, message: err.message || err};
+    }
+  }
+
+  async function setMasterPort(request) {
+    const {port} = JSON.parse(request.body);
+
+    try {
+      modServer.setPort(port);
+      return {ok: true};
+    } catch (err) {
+      return {ok: false, message: err.message || err};
+    }
+  }
 }
 
 module.exports = routes
