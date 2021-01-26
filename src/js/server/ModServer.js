@@ -5,11 +5,11 @@ const SerialPort = require("serialport");
 class ModServer {
   master = null;
   serialPort = null;
-  allPorts = [];
+  allComPorts = [];
 
   async constructor() {
     const ports = await SerialPort.list();
-    this.allPorts = _.map(ports, port=>_.pick(port, ["path", "manufacturer"]));
+    this.allComPorts = _.map(ports, port=>_.pick(port, ["path", "manufacturer"]));
     this.master = new ModbusRTU();
   }
 
@@ -17,7 +17,7 @@ class ModServer {
     return this.allPorts;
   }
 
-  setPort(port) {
+  setComPort(port) {
     this.serialPort = port;
     this.master.connectRTUBuffered(port, { baudRate: 9600 }, () => {
       console.log('---------------SerialPort:', port);

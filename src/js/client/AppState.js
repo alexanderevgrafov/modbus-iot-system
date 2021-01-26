@@ -1,10 +1,10 @@
 import {makeObservable, observable, action} from 'mobx'
-import {BoardModel} from './BoardModel';
-import {serverErrorCatch, serverErrorCatch} from './Utils'
+import {BoardModel, serverErrorCatch, serverErrorLog} from './internal';
 
 class AppState {
   @observable boards = {};
   @observable allPorts = [];
+  @observable errors = [];
   @observable comPort = 0;
 
   constructor() {
@@ -38,6 +38,14 @@ class AppState {
   @action
   addBoard(bid) {
     return this.boards[bid] = new BoardModel(bid);
+  }
+
+  @action
+  setErrorItem(bid, e) {
+    this.errors.push(e.message || e);
+    if (this.errors.length > 10) {
+      this.errors.shift();
+    }
   }
 
   @action

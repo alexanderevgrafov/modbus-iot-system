@@ -1,5 +1,5 @@
 import {makeObservable, observable, action} from 'mobx'
-import {serverErrorCatch} from './Utils'
+import {serverErrorCatch, serverBoardError} from './internal'
 
 class PinConfigModel {
   pin = 0
@@ -73,6 +73,7 @@ class BoardConfigModel {
   }
 
   update() {
+    const {bid} = this._parent;
     const data = {read: 0, write: 0, addr: 0, bid: this.boardId, startingPin: this.startingPin};
 
     _.each(_.range(0, 8), pin => {
@@ -81,11 +82,14 @@ class BoardConfigModel {
       data.addr |= (this.pins[pin].addr & 0xF) << (4 * pin);
     })
 
-    fetch('/config/' + this._parent.bid, {method: 'post', body: JSON.stringify(data)})
+    fetch('/config/' + bid, {method: 'post', body: JSON.stringify(data)})
       .then(x => x.json())
       .then(serverErrorCatch)
-      .then(x => this._parent.bid = this.boardId) // Works only if no error (and if was actual change)
-      .catch(serverErrorLog);
+      .then(x => {
+        this._parent.bid = this.boardId;
+        this._parent.clearLastError();
+      }) // Works only if no error (and if was actual change)
+      .catch(serverBoardError(bid));
   }
 }
 
@@ -117,21 +121,24 @@ class BoardDataModel {
   }
 
   update() {
+    const {bid} = this._parent;
     let pins = 0;
 
     _.each(_.range(0, 8), pin => {
       pins |= this.pins[pin] ? (1 << pin) : 0;
     })
 
-    fetch('/data/' + this._parent.bid, {method: 'post', body: JSON.stringify({pins, addr: this.addrOffset})})
+    fetch('/data/' + bid, {method: 'post', body: JSON.stringify({pins, addr: this.addrOffset})})
       .then(x => x.json())
       .then(serverErrorCatch)
-      .catch(serverErrorLog);
+      .then(() => this._parent.clearLastError())
+      .catch(serverBoardError(bid));
   }
 }
 
 class BoardModel {
   @observable bid = 0;
+  @observable lastError = '';
   @observable config = null;
   @observable data = null;
 
@@ -156,9 +163,10 @@ class BoardModel {
         this.data.setAddrOffset(x.data.dataOffset);
         this.config.setLoaded(true);
         this.bid = bid;
+        this.clearLastError();
       })
       .catch(e => {
-        serverErrorLog(e);
+        serverBoardError(bid)(e);
         this.config.setLoaded(false);
       });
   }
@@ -174,8 +182,18 @@ class BoardModel {
       .then(x => {
         serverErrorCatch(x);
         this.data.setFromMasks(x.data);
+        this.clearLastError();
       })
-      .catch(serverErrorLog);
+      .catch(serverBoardError(bid));
+  }
+
+  clearLastError() {
+    this.setLastError();
+  }
+
+  @action
+  setLastError(msg) {
+    this.lastError = msg;
   }
 }
 

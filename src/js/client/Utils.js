@@ -1,4 +1,16 @@
-const serverErrorCatch = x => { if (!x.ok) { throw ('Server error:' + x.message) } return x; }
-const serverErrorLog = e => console.log("Server Error:", e);
+import {appState} from './AppState';
 
-export { serverErrorCatch, serverErrorLog }
+const serverErrorCatch = x => {
+  if (!x.ok) {
+    throw ('Server error:' + x.message)
+  }
+  return x;
+}
+const serverErrorLog = e => console.log('Server Error:', e);
+const serverBoardError = bid => e => {
+  appState.setErrorItem(bid, e);
+  const board = this.getBoard(bid);
+  board.setLastError(e);
+}
+
+export {serverErrorCatch, serverErrorLog, serverBoardError}

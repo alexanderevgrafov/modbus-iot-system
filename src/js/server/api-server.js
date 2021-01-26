@@ -1,7 +1,6 @@
 const _ = require('lodash');
 const fs = require('fs');
 
-const BITS_ADDR = 16;
 const SLAVE_ID_ADDR = 1;
 const CONFIG_STORAGE_FILE = 'configStorage.json'
 
@@ -41,115 +40,92 @@ async function routes(fastify, options) {
     'post', '/setport', setMasterPort
   ];
 
-  _.each(fastifyHandlers, ([method, url, func]) => fastify[method](url, func));
-
-  async function getBoardConfig(request) {
+  _.each(fastifyHandlers, ([method, url, func]) => fastify[method](url, async (request, response) => {
     try {
-      const data = await modbusQuene(parseInt(request.params.id),
-        () => modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset
-        .then(res => {
-          console.log('PR1:', res);
-          const {data} = res;
-          return {
-            read: data[3],
-            write: data[4],
-            addr: (data[8] << 16) | (data[7]),
-            dataOffset: data[0],
-            startingPin: data[2],
-          }
-        })
+      const params = {request, response, params: request.params};
 
-      console.log('PR2:', data);
+      if (method === 'post') {
+        params.body = JSON.parse(request.body);
+      }
+      const result = await func(params);
+      const data = {ok: true};
 
-      return {ok: true, data};
+      if (result) {
+        data.data = result;
+      }
 
+      return data
     } catch (err) {
-      return {ok: false, message: err.message || err};
+      return {ok: false, message: err.message || err, error: err};
     }
+  }));
+
+  //_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
+
+  async function getBoardConfig({params: {id}}) {
+    const data = await modbusQuene(id, () => modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset
+      .then(res => {
+        console.log('PR1:', res);
+        const {data} = res;
+        return {
+          read: data[3],
+          write: data[4],
+          addr: (data[8] << 16) | (data[7]),
+          dataOffset: data[0],
+          startingPin: data[2],
+        }
+      })
+
+    console.log('PR2:', data);
+
+    return data;
   }
 
-  async function getBoardData(request) {
-    const {id, addr} = request.params;
-    try {
-      const pins = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 1))
-        .then(x => x.data[0]);
-      return {ok: true, data: {pins}};
-    } catch (err) {
-      return {ok: false, message: err.message || err};
-    }
+  async function getBoardData({params: {id, addr}}) {
+    const pins = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 1))
+      .then(x => x.data[0]);
+
+    return {pins};
   }
 
-  async function setBoardConfig(request) {
-    const {read, write, addr, bid, startingPin} = JSON.parse(request.body);
+  async function setBoardConfig({params: {id}, body: {read, write, addr, bid, startingPin}}) {
     const _addr = parseInt(addr);
     const words = [bid, startingPin, parseInt(read), parseInt(write), 0, 0, _addr & 0xFFFF, _addr >> 16];
 
-    try {
-      await modbusQuene(parseInt(request.params.id), () => modServer.master.writeRegisters(1, words));
-      return {ok: true};
-    } catch (err) {
-      return {ok: false, message: err.message || err};
-    }
+    await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(1, words));
   }
 
-  async function setBoardData(request) {
-    const {pins, addr} = JSON.parse(request.body);
+  async function setBoardData({params: {id}, body: {pins, addr}}) {
     const arr = [parseInt(pins), parseInt(addr)];
 
-    try {
-      await modbusQuene(parseInt(request.params.id), () => modServer.master.writeRegisters(addr, arr))
-      return {ok: true};
-    } catch (err) {
-      return {ok: false, message: err.message || err};
-    }
+    await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(addr, arr))
   }
 
-  async function setBoardId(request) {
-    const {newid} = JSON.parse(request.body);
+  async function setBoardId({params: {id}, body: {newid}}) {
     const arr = [parseInt(newid)];
-    const {id} = request.params;
 
-    try {
-      await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(SLAVE_ID_ADDR, arr))
-      return {ok: true, id: newid};
-    } catch (err) {
-      return {ok: false, id, message: err.message || err};
-    }
+    await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(SLAVE_ID_ADDR, arr))
+
+    return {id: newid};
   }
 
-  async function getSystemState(request) {
-    try {
-      const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
-      data.ports = modServer.getAllPorts();
+  async function getSystemState() {
+    const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
+    data.ports = modServer.getPortsList();
 
-      console.log('state is to LOAD: ', data);
-      return {ok: true, data: data};
-    } catch (err) {
-      return {ok: false, message: err.message || err};
-    }
+    console.log('state to LOAD: ', data);
+
+    return {data};
   }
 
-  async function setSystemState(request) {
-    const {data} = JSON.parse(request.body);
-    console.log('state is to save: ', data);
+  async function setSystemState({body}) {
+    console.log('state to SAVE: ', body);
 
-    try {
-      fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(data))
-      return {ok: true};
-    } catch (err) {
-      return {ok: false, message: err.message || err};
-    }
+    fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(body))
   }
 
-  async function setMasterPort(request) {
-    const {port} = JSON.parse(request.body);
-
-    try {
-      modServer.setPort(port);
-      return {ok: true};
-    } catch (err) {
-      return {ok: false, message: err.message || err};
-    }
+  async function setMasterPort({body: {port}}) {
+    modServer.setComPort(port);
   }
 }
 
