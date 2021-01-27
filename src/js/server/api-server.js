@@ -30,19 +30,21 @@ async function routes(fastify, options) {
   }
 
   const fastifyHandlers = [
-    'get', '/config/:id', getBoardConfig,
-    'get', '/data/:id/:addr', getBoardData,
-    'post', '/config/:id', setBoardConfig,
-    'post', '/data/:id', setBoardData,
-    'post', '/setid/:id', setBoardId,
-    'get', '/state', getSystemState,
-    'post', '/state', setSystemState,
-    'post', '/setport', setMasterPort
+    ['get', '/config/:id', getBoardConfig],
+    ['get', '/data/:id/:addr', getBoardData],
+    ['post', '/config/:id', setBoardConfig],
+    ['post', '/data/:id', setBoardData],
+    ['post', '/setid/:id', setBoardId],
+    ['get', '/state', getSystemState],
+    ['post', '/state', setSystemState],
+    ['post', '/setport', setMasterPort]
   ];
 
   _.each(fastifyHandlers, ([method, url, func]) => fastify[method](url, async (request, response) => {
     try {
       const params = {request, response, params: request.params};
+
+      console.warn(url, method, request.body);
 
       if (method === 'post') {
         params.body = JSON.parse(request.body);
@@ -56,6 +58,7 @@ async function routes(fastify, options) {
 
       return data
     } catch (err) {
+      console.error('API error catch:', err);
       return {ok: false, message: err.message || err, error: err};
     }
   }));
@@ -63,10 +66,10 @@ async function routes(fastify, options) {
   //_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
 
   async function getBoardConfig({params: {id}}) {
-    const data = await modbusQuene(id, () => modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset
+    return await modbusQuene(id, () => modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset word
       .then(res => {
-        console.log('PR1:', res);
         const {data} = res;
+
         return {
           read: data[3],
           write: data[4],
@@ -75,10 +78,6 @@ async function routes(fastify, options) {
           startingPin: data[2],
         }
       })
-
-    console.log('PR2:', data);
-
-    return data;
   }
 
   async function getBoardData({params: {id, addr}}) {
@@ -113,19 +112,21 @@ async function routes(fastify, options) {
     const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
     data.ports = modServer.getPortsList();
 
-    console.log('state to LOAD: ', data);
-
-    return {data};
+    return data;
   }
 
   async function setSystemState({body}) {
-    console.log('state to SAVE: ', body);
-
     fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(body))
   }
 
   async function setMasterPort({body: {port}}) {
-    modServer.setComPort(port);
+    try {
+      await modServer.setComPort(port);
+      modServer.master.setTimeout(500);
+
+    } catch (e) {
+      throw new Error(e);
+    }
   }
 }
 

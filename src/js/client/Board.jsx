@@ -1,7 +1,9 @@
 import * as React from 'react';
-import {useEffect} from 'react';
+import {useEffect, useContext} from 'react';
 import {observer} from 'mobx-react' // Or "mobx-react".
-import {appState} from './AppState';
+import { getParent} from 'mobx-state-tree'
+import {Loader} from './Loader'
+import {AppStateContext} from './AppState';
 
 const ConfigLine = observer(({config, startingPin}) => <tr>
   <td onClick={() => config.setRead(!config.read)}>D{startingPin + config.pin}{config.read && '#'}</td>
@@ -11,37 +13,40 @@ const ConfigLine = observer(({config, startingPin}) => <tr>
 </tr>);
 
 const Configurator = observer(({config}) => {
-  return <>
-    {!config ? 'Configurator will be here' :
-      <>
-        ID: <input value={config.boardId} onChange={e => config.setNewId(e.target.value)}/>
-        StPin: <input value={config.startingPin} onChange={e => config.setNewStPin(e.target.value)}/>
-        <table>
-          <tbody>
-          {_.map(_.range(0, 8), pin =>
-            <ConfigLine config={config.pins[pin]} startingPin={config.startingPin} key={pin}/>
-          )}
-          </tbody>
-        </table>
-        {
-          config.loaded ? <button onClick={() => config.update()}>Save config to board</button>
-            : <button onClick={() => config._parent.fetchConfig(config.boardId)}>Load config</button>
-        }
-      </>
-    }
-  </>
+  const [bid, setBid] = useState(config.boardId);
+  const [period, setPeriod] = useState(config.refreshPeriod);
+  let debId, debPer;
+  useEffect(()=>{
+    debId = _.debounce(val=>config.setNewId(val), 500);
+    debPer = _.debounce(val=>config.setPeriod(val), 500);
+  }, [config])
+  return !config ? 'Configurator will be here' :
+    <div className="board-config">
+      ID: <input value={bid} onChange={e => {const val = e.target.value; setBid(val); debId(val);}}/>
+      StPin: <input value={config.startingPin} onChange={e => config.setNewStPin(e.target.value)}/>
+      RefPer: <input value={period} onChange={e => {const val = e.target.value; setPeriod(val); debPer(val);}}/>
+      <table>
+        <tbody>
+        {_.map(_.range(0, 8), pin =>
+          <ConfigLine config={config.pins[pin]} startingPin={config.startingPin} key={pin}/>
+        )}
+        </tbody>
+      </table>
+      {
+        config.loaded ? <button onClick={() => config.update()}>Save config to board</button>
+          : <button onClick={() => getParent(config).fetchConfig(config.boardId)}>Load config</button>
+      }
+    </div>
 });
 
 const ControlPanel = observer(({data, config}) => {
-  return <>
-    {(data && config) ? <div>
-      {_.map(_.range(0, 8), pin =>
-        config.pins[pin].write ?
-          <button onClick={() => data.togglePin(pin)}
-                  key={pin}>D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
-      )}
-    </div> : 'Control panel be here'}
-  </>
+  return (data && config) ? <div className="board-control">
+    {_.map(_.range(0, 8), pin =>
+      config.pins[pin].write ?
+        <button onClick={() => data.togglePin(pin)}
+                key={pin}>D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
+    )}
+  </div> : <Loader/>
 });
 
 const Board = observer(({board}) => {
@@ -60,19 +65,23 @@ const Board = observer(({board}) => {
     }
   }, [board]);
 
-  return !board ? '---' :
-    <div>
+  return !board ? <Loader/> :
+    <div className="board">
       <h3>Board #{board.bid}</h3>
-      {board.lastError ? <pre>{board.lastError}</pre> : ''}
+      {board.lastError ? <pre>ERR: {board.lastError}</pre> : ''}
       <Configurator config={board.config}/>
       <ControlPanel data={board.data} config={board.config}/>
     </div>
 })
 
-const Boards = observer(() => <>{
-  _.map(_.keys(appState.boards), bid => <Board board={appState.getBoard(bid)} key={bid}/>)
-}
-</>)
+const Boards = observer(() => {
+  const appState = useContext(AppStateContext);
+
+  return <div id="boards">{
+    _.map(appState.boards, board => <Board board={board} key={board.bid}/>)
+  }
+  </div>
+})
 
 export {Board, Boards}
 

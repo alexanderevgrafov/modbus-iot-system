@@ -1,83 +1,103 @@
-import {makeObservable, observable, action} from 'mobx'
-import {BoardModel, serverErrorCatch, serverErrorLog} from './internal';
+import {createContext} from 'react';
+import {types} from 'mobx-state-tree'
+import {serverErrorCatch, serverErrorLog} from './Utils';
+import {BoardModel} from './BoardModel';
 
-class AppState {
-  @observable boards = {};
-  @observable allPorts = [];
-  @observable errors = [];
-  @observable comPort = 0;
+const ComPortModel = types.model('ComPortModel', {
+  path: '',
+  manufacturer: '',
+})
 
-  constructor() {
-    makeObservable(this);
-  }
+const AppState = types
+  .model('Application State', {
+    boards: types.array(BoardModel),
+    allPorts: types.array(ComPortModel),
+    errors: types.array(types.string),
+    comPort: '',
+  })
+  .actions(self => {
+    return {
+      getBoard(bid) {
+        // if (!self.boards[bid]) {
+        //   self.addBoard(bid);
+        // }
+        return _.find(self.boards, {bid});
+      },
 
-  @action
-  getBoard(bid) {
-    if (!this.boards[bid]) {
-      this.addBoard(bid);
+      setPort(port, allPorts = null) {
+        self.comPort = port;
+
+        if (allPorts) {
+          self.allPorts = allPorts;
+        }
+
+        fetch('/setport', {method: 'post', body: JSON.stringify({port})})
+          .then(x => x.json())
+          .then(serverErrorCatch)
+          .catch(serverErrorLog);
+      },
+
+      addBoard(bid) {
+        return bid && self.boards.push(BoardModel.create({bid}));
+      },
+
+      setBoardsList(list) {
+        const newBoards = [];
+
+        _.each(list.split(','), boardIdStr => {
+          const bid = parseInt(boardIdStr.trim());
+          if (bid) {
+            const board = self.getBoard(bid) || BoardModel.create({bid});
+            newBoards.push(board);
+          }
+        })
+
+        return self.boards = newBoards;
+      },
+
+      getBoardsList() {
+        return _.keys(_.compact(self.boards)).join(',');
+      },
+
+      setErrorItem(bid, e) {
+        self.errors.push(e.message || e);
+        if (self.errors.length > 10) {
+          self.errors.shift();
+        }
+      },
+
+      save() {
+        const data = {
+          boards: _.keys(self.boards).join(','),
+          port: self.comPort
+        }
+
+        fetch('/state', {method: 'post', body: JSON.stringify(data)})
+          .then(x => x.json())
+          .then(x => {
+            serverErrorCatch(x);
+          })
+          .catch(serverErrorLog);
+      },
+
+      load() {
+        return fetch('/state')
+          .then(x => x.json())
+          .then(x => {
+            serverErrorCatch(x);
+
+            self.setPort(x.data.port, x.data.ports);
+
+            _.each(_.compact(x.data.boards.split(',')), bid => self.addBoard(parseInt(bid)))
+          })
+          .catch(serverErrorLog);
+      }
     }
-    return this.boards[bid];
-  }
+  })
 
-  @action
-  setPort(port, allPorts = null) {
-    this.comPort = port;
+//const appState = AppState.create();
 
-    if (allPorts) {
-      this.allPorts = allPorts;
-    }
 
-    fetch('/setport', {method: 'post', data: JSON.stringify({port})})
-      .then(x => x.json())
-      .then(x => {
-        serverErrorCatch(x);
-      })
-      .catch(serverErrorLog);
-  }
+const AppStateContext = createContext();
 
-  @action
-  addBoard(bid) {
-    return this.boards[bid] = new BoardModel(bid);
-  }
-
-  @action
-  setErrorItem(bid, e) {
-    this.errors.push(e.message || e);
-    if (this.errors.length > 10) {
-      this.errors.shift();
-    }
-  }
-
-  @action
-  save() {
-    const data = {
-      boards: _.keys(this.boards).join(','),
-      port: this.comPort
-    }
-
-    fetch('/state', {method: 'post', data: JSON.stringify({data})})
-      .then(x => x.json())
-      .then(x => {
-        serverErrorCatch(x);
-      })
-      .catch(serverErrorLog);
-  }
-
-  @action
-  load() {
-    return fetch('/state')
-      .then(x => x.json())
-      .then(x => {
-        serverErrorCatch(x);
-
-        this.setPort(x.data.port, x.data.ports);
-        _.each(x.data.boards.split(','), bid => this.addBoard(bid))
-
-      })
-      .catch(serverErrorLog);
-  }
-}
-
-const appState = new AppState();
-
-export {appState};
+export {AppStateContext, AppState};
