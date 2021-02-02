@@ -1,7 +1,7 @@
-import { createContext } from 'react';
-import { types } from 'mobx-state-tree'
-import { serverErrorCatch, serverErrorLog } from './Utils';
-import { BoardModel } from './BoardModel';
+import {createContext} from 'react';
+import {types, getParent} from 'mobx-state-tree'
+import {serverErrorCatch, serverErrorLog} from './Utils';
+import {BoardModel} from './BoardModel';
 
 const ComPortModel = types.model('ComPortModel', {
   path: '',
@@ -11,6 +11,58 @@ const ComPortModel = types.model('ComPortModel', {
 const AppState = types
   .model('Application State', {
     boards: types.array(BoardModel),
+    scanner: types
+      .model('Board Scanner Model', {
+        from: 1,
+        to: 10,
+        next: 1,
+        scanning: false,
+        list: []
+      })
+      .actions(self => {
+        return {
+          toggleScanning() {
+            self.scanning = !self.scanning;
+
+            self.scanNext();
+          },
+
+          scanNext() {
+            self.scanId(self.next)
+              .then(x => {
+                if (x) {
+                  self.next = self.next + 1;
+                  if (x.ok) {
+                    self.list = [...self.list, x.bid];
+                  }
+                  if (self.next > self.to) {
+                    self.scanning = false;
+                    self.next = self.from;
+                  } else {
+                    self.scanNext();
+                  }
+                }
+              })
+          },
+
+          scanId(bid) {
+            if (self.scanning) {
+              return fetch('/config/' + bid)
+                .then(x => x.json())
+                .then(x => ({bid, ...x}))
+                .catch(getParent(self).setErrorItem);
+            } else {
+              return Promise.resolve(false);
+            }
+          },
+
+          setFrom(x) { self.from = x },
+
+          setTo(x) { self.to = x },
+
+          setList(x) { self.list = x },
+        }
+      }),
     allPorts: types.array(ComPortModel),
     errors: types.array(types.string),
     comPort: '',
@@ -18,10 +70,7 @@ const AppState = types
   .actions(self => {
     return {
       getBoard(bid) {
-        // if (!self.boards[bid]) {
-        //   self.addBoard(bid);
-        // }
-        return _.find(self.boards, { bid });
+        return _.find(self.boards, {bid});
       },
 
       setPort(port, allPorts = null) {
@@ -29,13 +78,13 @@ const AppState = types
           self.allPorts = allPorts;
         }
 
-        if (_.find(self.allPorts, p=>p.path===port)) {
-        self.comPort = port;
+        if (_.find(self.allPorts, p => p.path === port)) {
+          self.comPort = port;
         } else {
           self.comPort = '';
         }
 
-        fetch('/setport', { method: 'post', body: JSON.stringify({ port:self.comPort }) })
+        fetch('/setport', {method: 'post', body: JSON.stringify({port: self.comPort})})
           .then(x => x.json())
           .then(serverErrorCatch)
           .catch(self.setErrorItem);
@@ -51,7 +100,7 @@ const AppState = types
         _.each(list.split(','), boardIdStr => {
           const bid = parseInt(boardIdStr.trim());
           if (bid) {
-            const board = self.getBoard(bid) || BoardModel.create({ bid });
+            const board = self.getBoard(bid) || BoardModel.create({bid});
             newBoards.push(board);
           }
         })
@@ -60,7 +109,7 @@ const AppState = types
       },
 
       getBoardsList() {
-        return _.map(self.boards, x=>x.bid).join(',');
+        return _.map(self.boards, x => x.bid).join(',');
       },
 
       setErrorItem(e) {
@@ -70,13 +119,17 @@ const AppState = types
         }
       },
 
+      clearErrors() {
+        self.errors = [];
+      },
+
       save() {
         const data = {
-          boards: _.map(self.boards, b=>_.pick(b, ['bid', 'refreshPeriod'])),
+          boards: _.map(self.boards, b => _.pick(b, ['bid', 'refreshPeriod'])),
           port: self.comPort
         }
 
-        fetch('/state', { method: 'post', body: JSON.stringify(data) })
+        fetch('/state', {method: 'post', body: JSON.stringify(data)})
           .then(x => x.json())
           .then(x => {
             serverErrorCatch(x);
@@ -104,4 +157,4 @@ const AppState = types
 
 const AppStateContext = createContext();
 
-export { AppStateContext, AppState };
+export {AppStateContext, AppState};

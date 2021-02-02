@@ -2,6 +2,7 @@ import * as React from 'react';
 import {useState, useContext} from 'react';
 import {observer} from 'mobx-react'
 import {AppStateContext} from './AppState';
+import {BoardScanner} from './BoardScanner';
 
 const AppConfig = observer(() => {
   const appState = useContext(AppStateContext);
@@ -21,10 +22,11 @@ const AppConfig = observer(() => {
       <input value={boards} onChange={e => setBoards(e.target.value)}/>
       <button onClick={e => appState.setBoardsList(boards)}>Set list</button>
     </div>
-    <b>Last 10 errors:</b>
+    <b>Last 10 errors: <button onClick={()=>appState.clearErrors()}>clear</button></b>
     {
       _.map(appState.errors, (err, i) => <li key={i}>{err}</li>)
     }
+    <BoardScanner/>
   </div>
 })
 
