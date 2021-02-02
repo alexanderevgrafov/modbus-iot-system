@@ -10,7 +10,7 @@ const AppConfig = observer(() => {
   return <div id="app-config">
     <h3>Config</h3>
     <div>
-      <select onChange={e => appState.setPort(e.target.value)} defaultValue={appState.port}>
+      <select onChange={e => appState.setPort(e.target.value)} defaultValue={appState.comPort}>
         <option value=''>--not set--</option>
         {
           _.map(appState.allPorts, port =>

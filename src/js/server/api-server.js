@@ -44,7 +44,7 @@ async function routes(fastify, options) {
     try {
       const params = {request, response, params: request.params};
 
-      console.warn(url, method, request.body);
+   //   console.warn(url, method, request.body);
 
       if (method === 'post') {
         params.body = JSON.parse(request.body);
@@ -81,10 +81,11 @@ async function routes(fastify, options) {
   }
 
   async function getBoardData({params: {id, addr}}) {
-    const pins = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 1))
-      .then(x => x.data[0]);
+    const [pins, readPins] = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 2))
+      .then(x => x.data);
+  //    console.log("Pins", pins, "readPins", readPins);
 
-    return {pins};
+    return {pins, readPins};
   }
 
   async function setBoardConfig({params: {id}, body: {read, write, addr, bid, startingPin}}) {
@@ -95,7 +96,7 @@ async function routes(fastify, options) {
   }
 
   async function setBoardData({params: {id}, body: {pins, addr}}) {
-    const arr = [parseInt(pins), parseInt(addr)];
+    const arr = [parseInt(pins)];
 
     await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(addr, arr))
   }
@@ -110,7 +111,7 @@ async function routes(fastify, options) {
 
   async function getSystemState() {
     const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
-    data.ports = modServer.getPortsList();
+    data.ports = await modServer.getPortsList();
 
     return data;
   }
@@ -122,7 +123,7 @@ async function routes(fastify, options) {
   async function setMasterPort({body: {port}}) {
     try {
       await modServer.setComPort(port);
-      modServer.master.setTimeout(500);
+      modServer.master.setTimeout(2500);
 
     } catch (e) {
       throw new Error(e);

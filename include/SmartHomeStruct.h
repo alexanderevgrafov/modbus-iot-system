@@ -127,8 +127,11 @@ void SmartHomeStruct::readPins() {
       pin = this->config.startingPin + i;
       data = digitalRead(pin);
       //   debug.log("Coil %ld data read = %ld", pin, data);
-      this->setBit(&this->data.pin_bits, i, data);
+    } else {
+      data = 0;
     }
+
+    this->setBit(&this->data.pin_bits, i, data);
     // if (this->isPin(PIN_READABLE, PIN_ANALOG, i)) {
     //   pin = STARTING_ANALOG_PIN + i;
     //   data = analogRead(pin);
@@ -171,10 +174,7 @@ void SmartHomeStruct::writePins() {
 }
 
 void SmartHomeStruct::copyData() {
-  //uint16_t bits = this->getDataBits();
-  // uint16_t *words = this->getDataWords();
-
-  //   debug.log("Start bits copy routine %ld", bits);
+   //  debug.log("Start bits copy routine");
 
   for (int i = 0; i < 8; i++) {
     int8_t addr = this->config.d_copyOffset >> (i * 4) & 0xF;
@@ -183,6 +183,8 @@ void SmartHomeStruct::copyData() {
       uint16_t srcSet = this->isPin(PIN_READABLE, PIN_DIGITAL, i) ? this->data.pin_bits : this->data.bits;
       bool bb = (bool)(srcSet & (1 << i));
       addr = i + (addr & 0x7) * (addr & 0x8 ? -1 : 1);
+
+// debug.log("#:%d, Addr:%d, ==%d", i, addr, (byte)bb);
 
       if (addr >= 0 && addr < 8) {
 //        this->setBit(&this->data.bits, addr, srcSet & (1 << i) ? 1 : 0);
@@ -194,7 +196,7 @@ void SmartHomeStruct::copyData() {
     }
     // TODO: implement Analog words copying....
   }
-  //   debug.log("After data copy we have %ld", this->getDataBits());
+  //   debug.log("After data copy we have %ld", this->data.bits);
 }
 
 void SmartHomeStruct::initConfig(uint16_t d_maskRead, uint16_t d_maskWrite,

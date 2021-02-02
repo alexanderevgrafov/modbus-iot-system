@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
-#define MY_SERIAL 1
+#define MY_SERIAL 0
 
 #define SSerialTxControl 2
 
@@ -70,7 +70,10 @@ void setup() {
     sHome.initConfig(0x1, 12, 0, 0, 0x3, 0x0);
   }
 
+// Please mind - data is not stored in EEPROM so its always virgin after reset. Server takes care for restoring data on data bits.
   sHome.setAllData(0);
+
+  sHome.onConfigChange(&slave); // Required to init board by loaded config
 
   sHome.configIsChanged();  // Required to init crc
   sHome.dataIsChanged();    // Required to init crc
@@ -83,6 +86,7 @@ void loop() {
     if (sHome.configIsChanged()) {
       sHome.onConfigChange(&slave);
       saveToEEPROM();
+ //     debug.log("--Conf is changed");
     }
   }
   if (sHome.pinsAreChanged()) {

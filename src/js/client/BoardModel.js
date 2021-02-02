@@ -22,7 +22,7 @@ const PinConfigModel = types
       },
 
       setAddr(x) {
-        const {startingPin} = getParent(self);
+        const {startingPin} = getParent(getParent(self));
         x = parseInt(x) || 0
         x = x > 0 && Math.min(startingPin + 7, Math.max(x, startingPin));
         self.addr = x > 0 ? x - self.pin - startingPin : 0;
@@ -60,10 +60,6 @@ const BoardConfigModel = types
         self.boardId = parseInt(x);
       },
 
-      setPeriod(x) {
-        self.refreshPeriod = parseInt(x);
-      },
-
       setNewStPin(x) {
         self.startingPin = parseInt(x);
       },
@@ -93,7 +89,7 @@ const BoardConfigModel = types
           .then(x => x.json())
           .then(serverErrorCatch)
           .then(() => {
-            parent.bid = self.boardId;
+            parent.setId(self.boardId);
             parent.clearLastError();
           }) // Works only if no error (and if was actual change)
           .catch(parent.setBoardError);
@@ -105,21 +101,23 @@ const BoardDataModel = types
   .model('BoardDataModel',
     {
       addrOffset: 0,
-      pins: types.array(types.integer),
+      pins: types.array(types.boolean),
+      readPins: types.array(types.boolean),
     })
   .actions(self => {
     return {
       afterCreate() {
-        self.pins = [0, 0, 0, 0, 0, 0, 0, 0];
+        self.pins = self.readPins = [false, false, false, false, false, false, false, false];
       },
       togglePin(pin) {
-        self.pins.splice(pin, 1, !self.pins[pin] ? 1 : 0);
+        self.pins.splice(pin, 1, !self.pins[pin]);
         self.update();
       },
 
-      setFromMasks({pins}) {
+      setFromMasks({pins, readPins}) {
         _.each(_.range(0, 8), pin => {
           self.pins[pin] = !!(pins & (1 << pin));
+          self.readPins[pin] = !!(readPins & (1 << pin));
         })
       },
 
@@ -128,7 +126,7 @@ const BoardDataModel = types
       },
 
       update() {
-        const parent = self._parent;
+        const parent = getParent(self);
         const {bid} = parent;
         let pins = 0;
 
@@ -173,7 +171,8 @@ const BoardModel = types
             self.config.setNewStPin(x.data.startingPin);
             self.data.setAddrOffset(x.data.dataOffset);
             self.config.setLoaded(true);
-            self.bid = bid;
+  //          self.bid = bid;
+
             self.clearLastError();
           })
           .catch(e => {
@@ -199,6 +198,14 @@ const BoardModel = types
           .catch(self.setBoardError);
       },
 
+      setPeriod(x) {
+        self.refreshPeriod = parseInt(x);
+      },
+
+      setId(x) {
+        self.bid = parseInt(x);
+      },
+
       clearLastError() {
         self.setLastError();
       },
@@ -208,6 +215,8 @@ const BoardModel = types
       },
 
       setBoardError(e) {
+        const appState = getParent(getParent(self));
+        appState.setErrorItem(e);
         self.setLastError(e.message || e);
       }
     }

@@ -9,9 +9,9 @@ import {observer} from 'mobx-react' // Or "mobx-react".
 
 import "./styles.less";
 
-const onWindowOrTabClose = async e => {
+const onWindowOrTabClose = appState => async e => {
   console.log('unmounting...');
- await appState.save();
+  await appState.save();
   console.log('done!.');
 };
 
@@ -26,10 +26,10 @@ const Application = observer(() => {
         setReady(true)
       })
 
-    window.addEventListener('beforeunload', onWindowOrTabClose);
+    window.addEventListener('beforeunload', onWindowOrTabClose(appState));
 
     return () => {
-      window.removeEventListener('beforeunload', onWindowOrTabClose);
+      window.removeEventListener('beforeunload', onWindowOrTabClose(appState));
     }
   }, []);
 

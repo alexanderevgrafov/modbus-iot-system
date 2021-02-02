@@ -1,7 +1,7 @@
-import {createContext} from 'react';
-import {types} from 'mobx-state-tree'
-import {serverErrorCatch, serverErrorLog} from './Utils';
-import {BoardModel} from './BoardModel';
+import { createContext } from 'react';
+import { types } from 'mobx-state-tree'
+import { serverErrorCatch, serverErrorLog } from './Utils';
+import { BoardModel } from './BoardModel';
 
 const ComPortModel = types.model('ComPortModel', {
   path: '',
@@ -21,24 +21,28 @@ const AppState = types
         // if (!self.boards[bid]) {
         //   self.addBoard(bid);
         // }
-        return _.find(self.boards, {bid});
+        return _.find(self.boards, { bid });
       },
 
       setPort(port, allPorts = null) {
-        self.comPort = port;
-
         if (allPorts) {
           self.allPorts = allPorts;
         }
 
-        fetch('/setport', {method: 'post', body: JSON.stringify({port})})
+        if (_.find(self.allPorts, p=>p.path===port)) {
+        self.comPort = port;
+        } else {
+          self.comPort = '';
+        }
+
+        fetch('/setport', { method: 'post', body: JSON.stringify({ port:self.comPort }) })
           .then(x => x.json())
           .then(serverErrorCatch)
-          .catch(serverErrorLog);
+          .catch(self.setErrorItem);
       },
 
-      addBoard(bid) {
-        return bid && self.boards.push(BoardModel.create({bid}));
+      addBoard(data) {
+        return data && self.boards.push(BoardModel.create(data));
       },
 
       setBoardsList(list) {
@@ -47,7 +51,7 @@ const AppState = types
         _.each(list.split(','), boardIdStr => {
           const bid = parseInt(boardIdStr.trim());
           if (bid) {
-            const board = self.getBoard(bid) || BoardModel.create({bid});
+            const board = self.getBoard(bid) || BoardModel.create({ bid });
             newBoards.push(board);
           }
         })
@@ -56,10 +60,10 @@ const AppState = types
       },
 
       getBoardsList() {
-        return _.keys(_.compact(self.boards)).join(',');
+        return _.map(self.boards, x=>x.bid).join(',');
       },
 
-      setErrorItem(bid, e) {
+      setErrorItem(e) {
         self.errors.push(e.message || e);
         if (self.errors.length > 10) {
           self.errors.shift();
@@ -68,16 +72,16 @@ const AppState = types
 
       save() {
         const data = {
-          boards: _.keys(self.boards).join(','),
+          boards: _.map(self.boards, b=>_.pick(b, ['bid', 'refreshPeriod'])),
           port: self.comPort
         }
 
-        fetch('/state', {method: 'post', body: JSON.stringify(data)})
+        fetch('/state', { method: 'post', body: JSON.stringify(data) })
           .then(x => x.json())
           .then(x => {
             serverErrorCatch(x);
           })
-          .catch(serverErrorLog);
+          .catch(self.setErrorItem);
       },
 
       load() {
@@ -88,9 +92,9 @@ const AppState = types
 
             self.setPort(x.data.port, x.data.ports);
 
-            _.each(_.compact(x.data.boards.split(',')), bid => self.addBoard(parseInt(bid)))
+            x.data.boards && _.each(x.data.boards, b => self.addBoard(b))
           })
-          .catch(serverErrorLog);
+          .catch(self.setErrorItem);
       }
     }
   })
@@ -100,4 +104,4 @@ const AppState = types
 
 const AppStateContext = createContext();
 
-export {AppStateContext, AppState};
+export { AppStateContext, AppState };

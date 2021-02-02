@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {useEffect, useContext} from 'react';
+import {useEffect, useState, useContext} from 'react';
 import {observer} from 'mobx-react' // Or "mobx-react".
 import { getParent} from 'mobx-state-tree'
 import {Loader} from './Loader'
@@ -12,14 +12,14 @@ const ConfigLine = observer(({config, startingPin}) => <tr>
   <td onClick={() => config.setWrite(!config.write)}>D{startingPin + config.pin}{config.write && '#'}</td>
 </tr>);
 
-const Configurator = observer(({config}) => {
+const useDebounced = (obj, attr) => useState(()=>_.debounce(val=>obj[attr](val), 500));
+
+const Configurator = observer(({config, board}) => {
   const [bid, setBid] = useState(config.boardId);
-  const [period, setPeriod] = useState(config.refreshPeriod);
-  let debId, debPer;
-  useEffect(()=>{
-    debId = _.debounce(val=>config.setNewId(val), 500);
-    debPer = _.debounce(val=>config.setPeriod(val), 500);
-  }, [config])
+  const [period, setPeriod] = useState(board.refreshPeriod);
+  const [debId]= useDebounced(config, 'setNewId');  //_.debounce(val=>config.setNewId(val), 500);
+  const [debPer] = useDebounced(board, 'setPeriod'); //_.debounce(val=>board.setPeriod(val), 500);
+  
   return !config ? 'Configurator will be here' :
     <div className="board-config">
       ID: <input value={bid} onChange={e => {const val = e.target.value; setBid(val); debId(val);}}/>
@@ -46,6 +46,7 @@ const ControlPanel = observer(({data, config}) => {
         <button onClick={() => data.togglePin(pin)}
                 key={pin}>D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
     )}
+    {_.map(_.range(0, 8), pin => data.readPins[pin] ? 'D' + (config.startingPin + pin) + ' is ON' : '.'  ).join("") }
   </div> : <Loader/>
 });
 
@@ -56,20 +57,24 @@ const Board = observer(({board}) => {
     if (board) {
       board.fetchConfig()
         .then(() => board.fetchData());
-      pollInterval = setInterval(() => board.fetchData(), 9000);
+
+        if (board.refreshPeriod) {
+          pollInterval = setInterval(() => board.fetchData(), board.refreshPeriod);
+          console.log('Set period on ', board.refreshPeriod);
+        }
     }
 
     return () => {
       // Remove Board Model into storage
       clearInterval(pollInterval);
     }
-  }, [board]);
+  }, [board, board.refreshPeriod]);
 
   return !board ? <Loader/> :
     <div className="board">
       <h3>Board #{board.bid}</h3>
       {board.lastError ? <pre>ERR: {board.lastError}</pre> : ''}
-      <Configurator config={board.config}/>
+      <Configurator config={board.config} board={board}/>
       <ControlPanel data={board.data} config={board.config}/>
     </div>
 })
