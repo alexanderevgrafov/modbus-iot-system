@@ -1,15 +1,34 @@
 const _ = require('lodash');
+const fs = require('fs');
 const ModbusRTU = require('modbus-serial');
 const SerialPort = require('serialport');
+const CONFIG_STORAGE_FILE = 'configStorage.json';
 
 class ModServer {
   master = null;
   serialPort = null;
   allComPorts = [];
 
-  init() {
+  async init() {
+    const state = await this.getSystemState();
     this.master = new ModbusRTU();
+
+    if (state.port) {
+      await this.setComPort(state.port);
+    }
+
     return Promise.resolve();
+  }
+
+  async getSystemState(){
+    const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
+    data.ports = await this.getPortsList();
+
+    return data;
+  }
+
+  async setSystemState(data){
+    fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(data))
   }
 
   async getPortsList() {

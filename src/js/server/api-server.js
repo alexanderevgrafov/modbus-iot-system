@@ -1,8 +1,6 @@
 const _ = require('lodash');
-const fs = require('fs');
 
 const SLAVE_ID_ADDR = 1;
-const CONFIG_STORAGE_FILE = 'configStorage.json'
 
 async function routes(fastify, options) {
   const {modServer} = options;
@@ -83,7 +81,7 @@ async function routes(fastify, options) {
   async function getBoardData({params: {id, addr}}) {
     const [pins, readPins] = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 2))
       .then(x => x.data);
-  //    console.log("Pins", pins, "readPins", readPins);
+      console.log("Pins", pins, "readPins", readPins);
 
     return {pins, readPins};
   }
@@ -110,14 +108,11 @@ async function routes(fastify, options) {
   }
 
   async function getSystemState() {
-    const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
-    data.ports = await modServer.getPortsList();
-
-    return data;
+    return await modServer.getSystemState();
   }
 
   async function setSystemState({body}) {
-    fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(body))
+    await modServer.setSystemState(body);
   }
 
   async function setMasterPort({body: {port}}) {
