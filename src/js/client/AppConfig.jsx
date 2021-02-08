@@ -19,8 +19,6 @@ const AppConfig = observer(() => {
                     key={port.path}>{port.path} {port.manufacturer ? '(' + port.manufacturer + ')' : ''}</option>)
         }
       </select>
-      <input value={boards} onChange={e => setBoards(e.target.value)}/>
-      <button onClick={e => appState.setBoardsList(boards)}>Set list</button>
     </div>
     <b>Last 10 errors: <button onClick={()=>appState.clearErrors()}>clear</button></b>
     {

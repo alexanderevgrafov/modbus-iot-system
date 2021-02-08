@@ -8,10 +8,9 @@ const fastify = require('fastify')({
   //  logger: true
 })
 
-const LOOP_PERIOD = 3500;
 const SERVER_PORT = 8888;
 //const SERIAL_PORT = '/dev/serial0';
-const SERIAL_PORT = 'COM12';
+//const SERIAL_PORT = 'COM12';
 //const SERIAL_PORT = '/dev/ttyUSB0';
 //const serialPort = new SerialPort(SERIAL_PORT, {baudRate: 9600});
 const modServer = new ModServer();
@@ -41,7 +40,7 @@ function webserverSetup() {
     .register(require('./api-server'), {modServer})
 
   console.log('Server listens on port', SERVER_PORT);
-  fastify.listen(SERVER_PORT, function (err, address) {
+  fastify.listen(SERVER_PORT, '0.0.0.0', function (err, address) {
     if (err) {
       fastify.log.error(err)
       process.exit(1)

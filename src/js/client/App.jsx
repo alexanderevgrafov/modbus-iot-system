@@ -17,7 +17,7 @@ const onWindowOrTabClose = appState => async e => {
 
 const Application = observer(() => {
   const [ready, setReady] = useState(false);
-  const [appState] = useState(AppState.create());
+  const [appState] = useState(AppState.create({scanner:{}}));
 
   useEffect(() => {
     // appState.save();

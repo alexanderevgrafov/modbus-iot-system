@@ -1,7 +1,7 @@
-import {createContext} from 'react';
-import {types, getParent} from 'mobx-state-tree'
-import {serverErrorCatch, serverErrorLog} from './Utils';
-import {BoardModel} from './BoardModel';
+import { createContext } from 'react';
+import { types, getParent } from 'mobx-state-tree'
+import { serverErrorCatch, serverErrorLog } from './Utils';
+import { BoardModel } from './BoardModel';
 
 const ComPortModel = types.model('ComPortModel', {
   path: '',
@@ -17,7 +17,7 @@ const AppState = types
         to: 10,
         next: 1,
         scanning: false,
-        list: []
+        list: types.array(types.number),
       })
       .actions(self => {
         return {
@@ -31,13 +31,13 @@ const AppState = types
             self.scanId(self.next)
               .then(x => {
                 if (x) {
-                  self.next = self.next + 1;
+                  self.setNext(self.next + 1);
                   if (x.ok) {
-                    self.list = [...self.list, x.bid];
+                    self.setList([...self.list, x.bid]);
                   }
                   if (self.next > self.to) {
-                    self.scanning = false;
-                    self.next = self.from;
+                    self.setScanning(false);
+                    self.setNext(self.from);
                   } else {
                     self.scanNext();
                   }
@@ -49,16 +49,20 @@ const AppState = types
             if (self.scanning) {
               return fetch('/config/' + bid)
                 .then(x => x.json())
-                .then(x => ({bid, ...x}))
+                .then(x => ({ bid, ...x }))
                 .catch(getParent(self).setErrorItem);
             } else {
               return Promise.resolve(false);
             }
           },
 
-          setFrom(x) { self.from = x },
+          setFrom(x) { self.next = self.from = parseInt(x) },
 
-          setTo(x) { self.to = x },
+          setTo(x) { self.to = parseInt(x) },
+
+          setNext(x) { self.next = x },
+
+          setScanning(x) { self.scanning = !!x },
 
           setList(x) { self.list = x },
         }
@@ -70,7 +74,7 @@ const AppState = types
   .actions(self => {
     return {
       getBoard(bid) {
-        return _.find(self.boards, {bid});
+        return _.find(self.boards, { bid });
       },
 
       setPort(port, allPorts = null) {
@@ -84,7 +88,7 @@ const AppState = types
           self.comPort = '';
         }
 
-        fetch('/setport', {method: 'post', body: JSON.stringify({port: self.comPort})})
+        fetch('/setport', { method: 'post', body: JSON.stringify({ port: self.comPort }) })
           .then(x => x.json())
           .then(serverErrorCatch)
           .catch(self.setErrorItem);
@@ -100,7 +104,7 @@ const AppState = types
         _.each(list.split(','), boardIdStr => {
           const bid = parseInt(boardIdStr.trim());
           if (bid) {
-            const board = self.getBoard(bid) || BoardModel.create({bid});
+            const board = self.getBoard(bid) || BoardModel.create({ bid });
             newBoards.push(board);
           }
         })
@@ -129,7 +133,7 @@ const AppState = types
           port: self.comPort
         }
 
-        fetch('/state', {method: 'post', body: JSON.stringify(data)})
+        fetch('/state', { method: 'post', body: JSON.stringify(data) })
           .then(x => x.json())
           .then(x => {
             serverErrorCatch(x);
@@ -157,4 +161,4 @@ const AppState = types
 
 const AppStateContext = createContext();
 
-export {AppStateContext, AppState};
+export { AppStateContext, AppState };
