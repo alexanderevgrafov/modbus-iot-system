@@ -1,6 +1,5 @@
 const _ = require('lodash');
-
-const SLAVE_ID_ADDR = 1;
+const config = require('./config');
 
 async function routes(fastify, options) {
   const {modServer} = options;
@@ -102,7 +101,7 @@ async function routes(fastify, options) {
   async function setBoardId({params: {id}, body: {newid}}) {
     const arr = [parseInt(newid)];
 
-    await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(SLAVE_ID_ADDR, arr))
+    await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(config.SLAVE_ID_ADDR, arr))
 
     return {id: newid};
   }

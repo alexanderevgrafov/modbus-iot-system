@@ -2,12 +2,11 @@ const _ = require('lodash');
 const fs = require('fs');
 const ModbusRTU = require('modbus-serial');
 const SerialPort = require('serialport');
-const CONFIG_STORAGE_FILE = 'configStorage.json';
+const config = require('./config');
 
 class ModServer {
   master = null;
   serialPort = null;
-  allComPorts = [];
 
   async init() {
     const state = await this.getSystemState();
@@ -21,14 +20,14 @@ class ModServer {
   }
 
   async getSystemState(){
-    const data = JSON.parse(fs.readFileSync(CONFIG_STORAGE_FILE));
+    const data = JSON.parse(fs.readFileSync(config.CONFIG_STORAGE_FILE));
     data.ports = await this.getPortsList();
 
     return data;
   }
 
   async setSystemState(data){
-    fs.writeFileSync(CONFIG_STORAGE_FILE, JSON.stringify(data))
+    fs.writeFileSync(config.CONFIG_STORAGE_FILE, JSON.stringify(data))
   }
 
   async getPortsList() {
@@ -40,7 +39,7 @@ class ModServer {
     console.log("compare:",this.serialPort, port);
     if (this.serialPort === port) {
       this.log("Port is not changed");
-      return Promise.resolve(); 
+      return Promise.resolve();
     }
 
     return new Promise((resolve, reject) => {
@@ -51,8 +50,8 @@ class ModServer {
       }
       const connectorFunc = () =>{
          if (port) {
-            this.master.connectRTUBuffered(port, {baudRate: 9600}, portChange)
-          } else { 
+            this.master.connectRTUBuffered(port, {baudRate: config.SERIAL_BAUDRATE}, portChange)
+          } else {
             portChange();
           }
       }
