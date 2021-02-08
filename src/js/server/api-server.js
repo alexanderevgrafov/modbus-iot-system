@@ -23,6 +23,10 @@ async function routes(fastify, options) {
       .then(() => modbusCalls++)
       .then(() => modServer.master.setID(parseInt(slaveId)))
       .then(cb)
+      .catch(e=>{      
+//        console.log("QERR:", e); 
+        throw new Error(e.message || e)      
+      })
       .finally(() => modbusCalls--)
   }
 
@@ -80,7 +84,7 @@ async function routes(fastify, options) {
   async function getBoardData({params: {id, addr}}) {
     const [pins, readPins] = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 2))
       .then(x => x.data);
-      console.log("Pins", pins, "readPins", readPins);
+  //    console.log("Pins", pins, "readPins", readPins);
 
     return {pins, readPins};
   }
@@ -94,7 +98,7 @@ async function routes(fastify, options) {
 
   async function setBoardData({params: {id}, body: {pins, addr}}) {
     const arr = [parseInt(pins)];
-
+    console.log("Set data", arr);
     await modbusQuene(parseInt(id), () => modServer.master.writeRegisters(addr, arr))
   }
 

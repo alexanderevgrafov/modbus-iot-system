@@ -16,7 +16,8 @@ function webserverSetup() {
     })
     .register(require('./api-server'), {modServer})
 
-  console.log('Server listens on port', config.SERVER_PORT);
+  console.log(`Listens on ${config.LISTEN_HOST}:${config.SERVER_PORT}`);
+  
   fastify.listen(config.SERVER_PORT, config.LISTEN_HOST, function (err, address) {
     if (err) {
       fastify.log.error(err)

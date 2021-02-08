@@ -3,6 +3,7 @@ import {useState, useContext} from 'react';
 import {observer} from 'mobx-react'
 import {AppStateContext} from './AppState';
 import {BoardScanner} from './BoardScanner';
+import * as dayjs from 'dayjs'
 
 const AppConfig = observer(() => {
   const appState = useContext(AppStateContext);
@@ -20,9 +21,9 @@ const AppConfig = observer(() => {
         }
       </select>
     </div>
-    <b>Last 10 errors: <button onClick={()=>appState.clearErrors()}>clear</button></b>
+    <b>Last errors: <button onClick={()=>appState.clearErrors()}>clear</button></b>
     {
-      _.map(appState.errors, (err, i) => <li key={i}>{err}</li>)
+      _.map(appState.errors, (err, i) => <li key={i}>{dayjs(err.date).format('HH:mm:ss')}: {err.text}</li>)   //DD MMM
     }
     <BoardScanner/>
   </div>

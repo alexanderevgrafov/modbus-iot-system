@@ -8,6 +8,11 @@ const ComPortModel = types.model('ComPortModel', {
   manufacturer: '',
 })
 
+const ErrorRecordModel = types.model('ErrorRecordModel', {
+  text: '',
+  date: types.Date,
+})
+
 const AppState = types
   .model('Application State', {
     boards: types.array(BoardModel),
@@ -68,7 +73,7 @@ const AppState = types
         }
       }),
     allPorts: types.array(ComPortModel),
-    errors: types.array(types.string),
+    errors: types.array(ErrorRecordModel),
     comPort: '',
   })
   .actions(self => {
@@ -117,7 +122,8 @@ const AppState = types
       },
 
       setErrorItem(e) {
-        self.errors.push(e.message || e);
+        const errItem = ErrorRecordModel.create({ text: e.message || e, date: new Date})
+        self.errors.push(errItem);
         if (self.errors.length > 10) {
           self.errors.shift();
         }
