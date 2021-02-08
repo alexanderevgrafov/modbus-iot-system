@@ -1,4 +1,4 @@
-
+const _ = require('lodash');
 const path = require('path');
 const ModServer = require('./ModServer');
 const config = require('./config');
@@ -7,7 +7,9 @@ const fastify = require('fastify')({
 })
 
 const modServer = new ModServer();
-
+const modules = [
+  require('./modules/pump'),
+];
 
 function webserverSetup() {
   fastify
@@ -26,8 +28,13 @@ function webserverSetup() {
   })
 }
 
+function initModules(modules) {
+  _.each(modules, module=>module.init(modServer))
+}
+
 modServer.init()
   .then(() => webserverSetup())
+  .then(() => initModules(modules))
   .catch(e=>console.error(e));
 
 
