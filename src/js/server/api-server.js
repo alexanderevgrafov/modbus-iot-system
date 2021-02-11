@@ -16,6 +16,8 @@ async function routes(fastify, options) {
   ];
 
   _.each(fastifyHandlers, ([method, url, func]) => fastify[method](url, async (request, response) => {
+
+  //  console.log(method, request.params, request.body, 'to', url);
     try {
       const params = {request, response, params: request.params};
 
@@ -24,12 +26,15 @@ async function routes(fastify, options) {
       if (method === 'post') {
         params.body = JSON.parse(request.body);
       }
+      
       const result = await func(params);
       const data = {ok: true};
 
       if (result) {
         data.data = result;
       }
+
+   //   console.log('OK',data);
 
       return data
     } catch (err) {

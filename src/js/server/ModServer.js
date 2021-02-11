@@ -9,6 +9,22 @@ class ModServer {
   serialPort = null;
   modbusCalls = 0;
 
+  brd_data = 0;  // very tmp storage for board data (works only with one board in system)
+  brd_addr = 0;
+  getDataPin(pin) {
+    return this.brd_data & (1<<pin); // TODO: не забыть учитывать starting-pin
+  }
+
+  setDataPin(pin, val){
+    if (!!val) {
+      this.brd_data |= (1<<pin); // TODO: не забыть учитывать starting-pin
+    } else {
+      this.brd_data &= 0xFF^(1<<pin); // TODO: не забыть учитывать starting-pin
+    }
+
+    return this.brd_data;
+  }
+
   async init() {
     const state = await this.getSystemState();
     this.master = new ModbusRTU();
@@ -58,25 +74,36 @@ class ModServer {
   }
 
   async getBoardConfig(id) {
-    return await this.modbusQueue(id, () => this.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset word
+    //------------------- we load from 0(zero) to include dataOffset word. Beware to load enough words to pick all meaningfull data.
+    //console.log('Get config for', id)
+    return await this.modbusQueue(id, () => this.master.readInputRegisters(0, 12))  
       .then(res => {
         const {data} = res;
 
+       // this.brd_addr = parseInt(data[0]);
+
         return {
-          read: data[3],
-          write: data[4],
-          addr: (data[8] << 16) | (data[7]),
+          read: data[6],
+          write: data[7],
+          addr: (data[11] << 16) | (data[10]),
           dataOffset: data[0],
-          startingPin: data[2],
+          startingPin: data[5],
+          typeId: data[3]
         }
       })
   }
 
   async getBoardData(id, addr) {
     const [pins, readPins] = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr), 2))
+ //   const arr = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr)-4, 10))
       .then(x => x.data);
-    console.log('Pins', pins, 'readPins', readPins);
+  //  console.log('Pins', pins, 'readPins', readPins);
 
+  //  console.log('Arr', arr);
+
+  //  return {pins:0, readPins:0};
+    this.brd_data = parseInt(pins);
+    
     return {pins, readPins};
   }
 
@@ -84,11 +111,15 @@ class ModServer {
     const _addr = parseInt(addr);
     const words = [bid, startingPin, parseInt(read), parseInt(write), 0, 0, _addr & 0xFFFF, _addr >> 16];
 
-    await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(1, words));
+    await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(config.SLAVE_ID_ADDR, words));
   }
 
   async setBoardData({id, pins, addr}) {
-    const arr = [parseInt(pins)];
+    this.brd_data = parseInt(pins);
+    this.brd_addr = addr;
+    const arr = [this.brd_data];
+
+   // console.log(id, pins, addr);
 
     await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(addr, arr))
   }
@@ -102,9 +133,9 @@ class ModServer {
   }
 
   setComPort(port) {
-    console.log('compare:', this.serialPort, port);
+   // console.log('compare:', this.serialPort, port);
     if (this.serialPort === port) {
-      this.log('Port is not changed');
+    //  this.log('Port is not changed');
       return Promise.resolve();
     }
 
@@ -117,6 +148,7 @@ class ModServer {
       const connectorFunc = () => {
         if (port) {
           this.master.connectRTUBuffered(port, {baudRate: config.SERIAL_BAUDRATE}, portChange)
+          this.master.setTimeout(500);
         } else {
           portChange();
         }
