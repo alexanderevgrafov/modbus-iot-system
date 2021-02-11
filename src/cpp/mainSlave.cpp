@@ -2,7 +2,6 @@
 #include <EEPROM.h>
 
 #define MY_SERIAL 0
-
 #define SSerialTxControl 2
 
 #if MY_SERIAL > 0
@@ -13,8 +12,8 @@
 
 #include "SmartHomeStruct.h"
 
-#define EEPROM_STORAGE_ADDR 0
-#define EEPROM_STORAGE_BYTES 20
+// Change version for major changes, this will reset EEPROM saved state
+#define VERSION 100 // Keep it under 2 bytes
 
 #if MY_SERIAL > 0
 SoftwareSerial mySerial(MY_SERIAL_RX, MY_SERIAL_TX);
@@ -24,16 +23,18 @@ Modbus slave(DEFAULT_SLAVE_ID, Serial, SSerialTxControl);
 #endif
 
 SmartHomeStruct sHome;
+#define EEPROM_STORAGE_ADDR 0
+uint8_t EEPROM_STORAGE_BYTES = sizeof(SmartHomeConfig);
 
 void saveToEEPROM() {
   uint16_t crcFact = 0;
-
+  
   for (byte i = 0; i < EEPROM_STORAGE_BYTES; i++) {
     uint8_t byte = ((uint8_t*)&sHome.config)[i];
     EEPROM.write(EEPROM_STORAGE_ADDR + i, byte);
   }
 
-  crcFact = CRC16.ccitt((uint8_t*)&sHome.config, EEPROM_STORAGE_BYTES);
+  crcFact = CRC16.ccitt((uint8_t*)&sHome.config, EEPROM_STORAGE_BYTES) ^ ( VERSION >> 8 ) ^ (VERSION & 0xFF);
   EEPROM.put(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcFact);
 }
 
@@ -45,7 +46,7 @@ bool restoreFromEEPROM() {
   for (byte i = 0; i < EEPROM_STORAGE_BYTES; i++) {
     buff[i] = EEPROM.read(EEPROM_STORAGE_ADDR + i);
   }
-  crcFact = CRC16.ccitt(buff, EEPROM_STORAGE_BYTES);
+  crcFact = CRC16.ccitt(buff, EEPROM_STORAGE_BYTES) ^ ( VERSION >> 8 ) ^ (VERSION & 0xFF);
   EEPROM.get(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcRead);
 
   if (crcFact == crcRead) {

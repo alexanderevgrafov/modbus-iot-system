@@ -4,7 +4,7 @@ const defaults = {
   PUBLIC_PATH: '/../../../public',
   CONFIG_STORAGE_FILE: 'configStorage.json',
   SERIAL_BAUDRATE: 9600,
-  SLAVE_ID_ADDR: 1,
+  SLAVE_ID_ADDR: 4,
 }
 
 const config = Object.assign({}, defaults, process.env, require('dotenv').config().parsed || {});

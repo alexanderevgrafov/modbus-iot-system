@@ -5,6 +5,12 @@
 #include "ModbusRtu.h"
 //#include "MyDebug.h"
 
+#define DEFAULT_TYPE_ID 1
+#define DEFAULT_SLAVE_ID 222
+
+#define STARTING_DIGITAL_PIN 5
+#define STARTING_ANALOG_PIN 14
+
 enum PIN_TYPE { PIN_DIGITAL = 0,
                 PIN_ANALOG = 1 };
 
@@ -14,24 +20,20 @@ enum PIN_MODE { PIN_READABLE = 0,
 FastCRC16 CRC16;
 //MyDebug debug;
 
-#define DEFAULT_SLAVE_ID 222
-
-#define STARTING_DIGITAL_PIN 5
-#define STARTING_ANALOG_PIN 14
-
 struct SmartHomeConfig {
-  uint16_t slaveID;       //1. 1- because there is one word before config struct
-  uint16_t startingPin;   //2.
-  uint16_t d_maskRead;    //3.
-  uint16_t d_maskWrite;   //4.
-  uint16_t a_maskRead;    //5.
-  uint16_t a_maskWrite;   //6.
-  uint32_t d_copyOffset;  //7. 4 bits per each address, 8 pins supported in total
-  uint32_t a_copyOffset;  //9.
-  uint32_t reserved1;     //11
-  uint32_t reserved2;     //13
-  uint32_t reserved3;     //15
-  uint32_t reserved4;     //17
+  uint32_t reserved0;     //1. 1- because there is one word before config struct
+  uint16_t typeID;        //3 
+  uint16_t slaveID;       //4
+  uint16_t startingPin;   //5.
+  uint16_t d_maskRead;    //6.
+  uint16_t d_maskWrite;   //7.
+  uint16_t a_maskRead;    //8.
+  uint16_t a_maskWrite;   //9.
+  uint32_t d_copyOffset;  //10. 4 bits per each address, 8 pins supported in total
+  uint32_t a_copyOffset;  //12.
+  uint32_t reserved1;     //14
+  uint32_t reserved2;     //16
+  uint32_t reserved3;     //18
 };
 
 struct SmartHomeData {
@@ -57,7 +59,7 @@ class SmartHomeStruct {
   uint16_t lastDataCrc;
   uint16_t lastPinsCrc;
 
-  SmartHomeStruct::SmartHomeStruct();
+  SmartHomeStruct();
   void initConfig(uint16_t d_maskRead, uint16_t d_maskWrite,
                   uint16_t a_maskRead, uint16_t a_maskWrite,
                   uint32_t d_copyOffset, uint32_t a_copyOffset);
@@ -89,6 +91,7 @@ class SmartHomeStruct {
 SmartHomeStruct::SmartHomeStruct() {
   this->dataOffset = sizeof(SmartHomeConfig) / 2 + 1;
   this->config.slaveID = DEFAULT_SLAVE_ID;
+  this->config.typeID = DEFAULT_TYPE_ID;
   this->config.startingPin = STARTING_DIGITAL_PIN;
 }
 
@@ -141,8 +144,6 @@ void SmartHomeStruct::readPins() {
 }
 
 void SmartHomeStruct::writePins() {
-  // uint16_t bits = this->getDataBits();
-  //  uint16_t *words = this->getDataWords();
   uint8_t data;
   uint8_t pin;
 
@@ -187,9 +188,7 @@ void SmartHomeStruct::copyData() {
 // debug.log("#:%d, Addr:%d, ==%d", i, addr, (byte)bb);
 
       if (addr >= 0 && addr < 8) {
-//        this->setBit(&this->data.bits, addr, srcSet & (1 << i) ? 1 : 0);
         this->setBit(&this->data.bits, addr, bb ? 1 : 0);
-
       } else {
         //        debug.log("Digital copy addr %ld is out of range (%ld)", i, addr);
       }
