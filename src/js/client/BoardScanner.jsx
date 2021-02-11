@@ -5,7 +5,7 @@ import {AppStateContext} from './AppState';
 
 const BoardScanner = observer(() => {
   const appState = useContext(AppStateContext);
- // const [boards, setBoards] = useState(appState.getBoardsList());
+  const [manualList, setManualList] = useState(appState.getBoardsList());
 
   return <div id="board-scanner">
     <h3>Scanner</h3>
@@ -24,6 +24,7 @@ const BoardScanner = observer(() => {
       <button onClick={() => appState.setBoardsList(appState.scanner.list.join(","))}>
         Apply [{appState.scanner.list.join(",")}]
         </button>: null}
+Manual List Set:        <input value={manualList} onChange={e => setManualList(e.target.value)}/>        <button onClick={() => appState.setBoardsList(manualList)}>        ManualSet        </button>
     </div>
   </div>
 })

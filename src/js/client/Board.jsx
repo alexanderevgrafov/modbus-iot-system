@@ -43,8 +43,8 @@ const ControlPanel = observer(({data, config}) => {
   return (data && config) ? <div className="board-control">
     {_.map(_.range(0, 8), pin =>
       config.pins[pin].write ?
-        <button onClick={() => data.togglePin(pin)}
-                key={pin}>D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</button> : void 0
+        <div onClick={() => data.togglePin(pin)} className='button-like'
+                key={pin}>D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</div> : void 0
     )}
     {_.map(_.range(0, 8), pin => data.readPins[pin] ? 'D' + (config.startingPin + pin) + ' is ON' : '.'  ).join("") }
   </div> : <Loader/>
