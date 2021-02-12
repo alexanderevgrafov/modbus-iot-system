@@ -121,6 +121,10 @@ class ModServer {
 
    // console.log(id, pins, addr);
 
+    if (!addr) {
+      throw new Error("Tryin to ruin board with !addr");
+    }
+
     await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(addr, arr))
   }
 

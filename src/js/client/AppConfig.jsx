@@ -23,7 +23,7 @@ const AppConfig = observer(() => {
     </div>
     <b>Last errors: <button onClick={()=>appState.clearErrors()}>clear</button></b>
     {
-      _.map(appState.errors, (err, i) => <li key={i}>{dayjs(err.date).format('HH:mm:ss')}: {err.text}</li>)   //DD MMM
+      _.map(appState.errors, (err, i) => <div key={i}>{dayjs(err.date).format('DD MMM HH:mm:ss')}: {err.text}</div>)   //DD MMM
     }
     <BoardScanner/>
   </div>

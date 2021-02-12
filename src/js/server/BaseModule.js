@@ -25,8 +25,10 @@ class BaseModule{
     this.modServer = server;
     this.timer && clearInterval(this.timer);
 
+    console.log('Init module', this.name);
+    
     if (this.interval) {
-       callLoop();
+       setTimeout(callLoop, 2000);
        this.timer = setInterval(callLoop, this.interval);
     }
   }

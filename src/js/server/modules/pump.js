@@ -3,6 +3,7 @@ const dayjs = require("dayjs")
 
 class PumpModule extends BaseModule {
   interval = 60000;
+  name = 'Pump';
   config = {
     relayPin: 0,   // TODO: учитывать starting pin
     boardId: 16,  //  каждый плагин должен отвечать либо всем платам либо конкретной
