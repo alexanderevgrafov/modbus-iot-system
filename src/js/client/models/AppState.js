@@ -1,7 +1,7 @@
 import { createContext } from 'react';
 import { types, getParent } from 'mobx-state-tree'
-import { serverErrorCatch, serverErrorLog } from './Utils';
-import { BoardModel } from './BoardModel';
+import { serverErrorCatch, serverErrorLog } from '../Utils';
+import { BoardModel } from '../../common-models/BoardModel';
 
 const ComPortModel = types.model('ComPortModel', {
   path: '',

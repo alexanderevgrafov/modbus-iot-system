@@ -4,6 +4,7 @@ const defaults = {
   PUBLIC_PATH: '/../../../public',
   CONFIG_STORAGE_FILE: 'configStorage.json',
   SERIAL_BAUDRATE: 9600,
+  MODBUS_TIMEOUT: 2500,
   SLAVE_ID_ADDR: 4,
 }
 

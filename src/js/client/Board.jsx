@@ -3,7 +3,7 @@ import {useEffect, useState, useContext} from 'react';
 import {observer} from 'mobx-react' // Or "mobx-react".
 import { getParent} from 'mobx-state-tree'
 import {Loader} from './Loader'
-import {AppStateContext} from './AppState';
+import {AppStateContext} from './models/AppState';
 
 const ConfigLine = observer(({config, startingPin}) => <tr>
   <td onClick={() => config.setRead(!config.read)}>D{startingPin + config.pin}{config.read && '#'}</td>
@@ -19,7 +19,7 @@ const Configurator = observer(({config, board}) => {
   const [period, setPeriod] = useState(board.refreshPeriod);
   const [debId]= useDebounced(config, 'setNewId');  //_.debounce(val=>config.setNewId(val), 500);
   const [debPer] = useDebounced(board, 'setPeriod'); //_.debounce(val=>board.setPeriod(val), 500);
-  
+
   return !config ? 'Configurator will be here' :
     <div className="board-config">
       ID: <input value={bid} onChange={e => {const val = e.target.value; setBid(val); debId(val);}}/>

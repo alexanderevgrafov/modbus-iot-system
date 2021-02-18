@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {AppStateContext, AppState} from './AppState';
+import {AppStateContext, AppState} from './models/AppState';
 import {Loader} from './Loader';
 import {AppConfig} from './AppConfig';
 import {Boards} from './Board'

@@ -1,8 +1,7 @@
-const _ = require('lodash');
-const fs = require('fs');
+//const _ = require('lodash');
+//const fs = require('fs');
 const ModbusRTU = require('modbus-serial');
-const SerialPort = require('serialport');
-const config = require('./config');
+const config = require('../config');
 
 class ModServer {
   master = null;
@@ -25,15 +24,15 @@ class ModServer {
     return this.brd_data;
   }
 
-  async init() {
-    const state = await this.getSystemState();
+  async init(state) {
+    // const state = await this.getSystemState();
     this.master = new ModbusRTU();
 
     if (state.port) {
       await this.setComPort(state.port);
     }
 
-    return Promise.resolve();
+    return state;
   }
 
   waitModbusIdle() {
@@ -56,27 +55,18 @@ class ModServer {
       .then(cb)
       .finally(() => this.modbusCalls--)
   }
-
-  async getSystemState() {
-    const data = JSON.parse(fs.readFileSync(config.CONFIG_STORAGE_FILE));
-    data.ports = await this.getPortsList();
-
-    return data;
-  }
-
-  async setSystemState(data) {
-    fs.writeFileSync(config.CONFIG_STORAGE_FILE, JSON.stringify(data))
-  }
-
-  async getPortsList() {
-    return await SerialPort.list()
-      .then(ports => _.map(ports, port => _.pick(port, ['path', 'manufacturer'])))
-  }
+  //
+  // async getSystemState() {
+  //   const data = JSON.parse(fs.readFileSync(config.CONFIG_STORAGE_FILE));
+  //   data.ports = await this.getPortsList();
+  //
+  //   return data;
+  // }
 
   async getBoardConfig(id) {
     //------------------- we load from 0(zero) to include dataOffset word. Beware to load enough words to pick all meaningfull data.
     //console.log('Get config for', id)
-    return await this.modbusQueue(id, () => this.master.readInputRegisters(0, 12))  
+    return await this.modbusQueue(id, () => this.master.readInputRegisters(0, 12))
       .then(res => {
         const {data} = res;
 
@@ -103,7 +93,7 @@ class ModServer {
 
   //  return {pins:0, readPins:0};
     this.brd_data = parseInt(pins);
-    
+
     return {pins, readPins};
   }
 

@@ -1,9 +1,8 @@
 const _ = require('lodash');
-
-//const config = require('./config');
+const config = require('./config');
 
 async function routes(fastify, options) {
-  const {modServer} = options;
+  const {app} = options;
   const fastifyHandlers = [
     ['get', '/config/:id', getBoardConfig],
     ['get', '/data/:id/:addr', getBoardData],
@@ -17,7 +16,7 @@ async function routes(fastify, options) {
 
   _.each(fastifyHandlers, ([method, url, func]) => fastify[method](url, async (request, response) => {
 
-  //  console.log(method, request.params, request.body, 'to', url);
+    //  console.log(method, request.params, request.body, 'to', url);
     try {
       const params = {request, response, params: request.params};
 
@@ -26,7 +25,7 @@ async function routes(fastify, options) {
       if (method === 'post') {
         params.body = JSON.parse(request.body);
       }
-      
+
       const result = await func(params);
       const data = {ok: true};
 
@@ -34,7 +33,7 @@ async function routes(fastify, options) {
         data.data = result;
       }
 
-   //   console.log('OK',data);
+      //   console.log('OK',data);
 
       return data
     } catch (err) {
@@ -46,7 +45,7 @@ async function routes(fastify, options) {
   //_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-_-
 
   async function getBoardConfig({params: {id}}) {
-    // return await modbusQuene(id, () => modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset word
+    // return await modbusQuene(id, () => app.modServer.master.readInputRegisters(0, 11))  //we load from zero to include dataOffset word
     //   .then(res => {
     //     const {data} = res;
     //
@@ -59,43 +58,44 @@ async function routes(fastify, options) {
     //     }
     //   })
 
-    return await modServer.getBoardConfig(id);
+    return await app.modServer.getBoardConfig(id);
   }
 
   async function getBoardData({params: {id, addr}}) {
-    // const [pins, readPins] = await modbusQuene(parseInt(id), () => modServer.master.readHoldingRegisters(parseInt(addr), 2))
+    // const [pins, readPins] = await modbusQuene(parseInt(id), () => app.modServer.master.readHoldingRegisters(parseInt(addr), 2))
     //   .then(x => x.data);
     //   console.log("Pins", pins, "readPins", readPins);
     //
     // return {pins, readPins};
-    return await modServer.getBoardData(id, addr);
+    return await app.modServer.getBoardData(id, addr);
 
   }
 
   async function setBoardConfig({params: {id}, body: {read, write, addr, bid, startingPin}}) {
-    return await modServer.setBoardConfig({id, read, write, addr, bid, startingPin});//modbusQuene(parseInt(id), () => modServer.master
+    return await app.modServer.setBoardConfig({id, read, write, addr, bid, startingPin});
+    //modbusQuene(parseInt(id), () => app.modServer.master
   }
 
   async function setBoardData({params: {id}, body: {pins, addr}}) {
-    return await modServer.setBoardData({id, pins, addr})
+    return await app.modServer.setBoardData({id, pins, addr})
   }
 
   async function setBoardId({params: {id}, body: {newid}}) {
-    return await modServer.setBoardId(id, newid);
+    return await app.modServer.setBoardId(id, newid);
   }
 
   async function getSystemState() {
-    return await modServer.getSystemState();
+    return await app.modServer.getSystemState();
   }
 
   async function setSystemState({body}) {
-    await modServer.setSystemState(body);
+    await app.modServer.setSystemState(body);
   }
 
   async function setMasterPort({body: {port}}) {
     try {
-      await modServer.setComPort(port);
-      modServer.master.setTimeout(2500);
+      await app.modServer.setComPort(port);
+      app.modServer.master.setTimeout(config.MODBUS_TIMEOUT);
 
     } catch (e) {
       throw new Error(e);

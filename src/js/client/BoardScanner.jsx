@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {useContext, useState} from 'react';
 import {observer} from 'mobx-react'
-import {AppStateContext} from './AppState';
+import {AppStateContext} from './models/AppState';
 
 const BoardScanner = observer(() => {
   const appState = useContext(AppStateContext);
@@ -20,7 +20,7 @@ const BoardScanner = observer(() => {
         appState.scanner.setList([]);
       }}>Reset</button>
       <input value={appState.scanner.list.join(",")} onBlur={e => appState.setBoardsList(e.target.value.split(","))}/>
-      {appState.scanner.list.length ? 
+      {appState.scanner.list.length ?
       <button onClick={() => appState.setBoardsList(appState.scanner.list.join(","))}>
         Apply [{appState.scanner.list.join(",")}]
         </button>: null}
