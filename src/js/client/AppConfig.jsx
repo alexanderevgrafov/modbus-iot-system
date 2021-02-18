@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {useState, useContext} from 'react';
 import {observer} from 'mobx-react'
-import {AppStateContext} from './AppState';
+import {AppStateContext} from './models/AppState';
 import {BoardScanner} from './BoardScanner';
 import * as dayjs from 'dayjs'
 

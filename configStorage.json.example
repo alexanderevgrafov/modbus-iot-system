@@ -1,0 +1,41 @@
+{
+  "boards": [
+    {
+      "bid": 222,
+      "status": {
+        "lastError": ""
+      },
+      "settings": {
+        "refreshPeriod": 5000
+      },
+      "config": {
+        "loaded": false,
+        "boardId": 16,
+        "startingPin": 0,
+        "pinsRead": 0,
+        "pinsWrite": 0,
+        "pinsAddr": 0
+      },
+      "data": {}
+    },
+    {
+      "bid": 16,
+      "status": {
+        "lastError": ""
+      },
+      "settings": {
+        "refreshPeriod": 0
+      },
+      "config": {
+        "loaded": false,
+        "boardId": 16,
+        "startingPin": 0,
+        "pinsRead": 0,
+        "pinsWrite": 0,
+        "pinsAddr": 0
+      },
+      "data": {}
+    }
+  ],
+  "port": "/dev/tty.Bluetooth-Incoming-Port"
+}
