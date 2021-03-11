@@ -3,7 +3,7 @@
     "watch": "webpack --progress --watch --mode=development",
     "compile": "webpack --progress --mode=development",
     "build": "webpack --mode=production",
-    "server-watch": "nodemon --watch ./src/js/server ./src/js/server/server.js",
+    "server-watch": "nodemon --watch ./src/js/server --watch ./src/js/common-models ./src/js/server/server.js",
     "server": "node ./src/js/server/server.js"
   },
   "devDependencies": {
@@ -27,12 +27,15 @@
     "webpack-cli": "^4.3.1"
   },
   "dependencies": {
-    "dotenv": "^8.2.0",
     "dayjs": "^1.10.4",
+    "dotenv": "^8.2.0",
     "fastify": "^3.9.2",
     "fastify-static": "^3.3.1",
+    "json5": "^2.2.0",
     "less": "^4.1.0",
     "lodash": "^4.17.20",
-    "modbus-serial": "^8.0.1"
+    "modbus-serial": "^8.0.1",
+    "socket.io": "^3.1.1",
+    "socket.io-client": "^3.1.1"
   }
 }

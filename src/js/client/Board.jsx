@@ -1,81 +1,75 @@
 import * as React from 'react';
-import {useEffect, useState, useContext} from 'react';
+import {useState, useContext} from 'react';
 import {observer} from 'mobx-react' // Or "mobx-react".
-import { getParent} from 'mobx-state-tree'
+import {entries} from 'mobx';
 import {Loader} from './Loader'
 import {AppStateContext} from './models/AppState';
 
-const ConfigLine = observer(({config, startingPin}) => <tr>
-  <td onClick={() => config.setRead(!config.read)}>D{startingPin + config.pin}{config.read && '#'}</td>
-  <td><input onChange={e => config.setAddr(e.target.value)}
-             value={config.addr ? startingPin + config.pin + config.addr : 0}/></td>
-  <td onClick={() => config.setWrite(!config.write)}>D{startingPin + config.pin}{config.write && '#'}</td>
-</tr>);
+const ConfigLine = observer(({config, pin}) => {
+  const isRead = config.isPinRead(pin);
+  const isWrite = config.isPinWrite(pin);
+  const addr = config.pinAddr(pin);
+  const {startingPin} = config;
 
-const useDebounced = (obj, attr) => useState(()=>_.debounce(val=>obj[attr](val), 500));
+  return <tr>
+    <td onClick={() => config.setPinRead(pin, !isRead)}>D{startingPin + pin}{isRead ? '#' : void 0}</td>
+    <td><input onChange={e => config.setPinAddr(pin, e.target.value)}
+               value={addr ? config.startingPin + pin + addr : 0}/></td>
+    <td onClick={() => config.setPinWrite(pin, !isWrite)}>D{startingPin + pin}{isWrite ? '#' : void 0}</td>
+  </tr>
+});
 
-const Configurator = observer(({config, board}) => {
-  const [bid, setBid] = useState(config.boardId);
-  const [period, setPeriod] = useState(board.refreshPeriod);
-  const [debId]= useDebounced(config, 'setNewId');  //_.debounce(val=>config.setNewId(val), 500);
-  const [debPer] = useDebounced(board, 'setPeriod'); //_.debounce(val=>board.setPeriod(val), 500);
+const useDebounced = (obj, attr) => useState(() => _.debounce(val => obj.set({[attr]: val}), 500));
 
-  return !config ? 'Configurator will be here' :
+const Configurator = observer(({board}) => {
+  const [bid, setBid] = useState(board.bid);
+  const [period, setPeriod] = useState(board.settings.refreshPeriod);
+  const [debPer] = useDebounced(board.settings, 'refreshPeriod');
+
+  return !board.config ? 'Configurator will be here' :
     <div className="board-config">
-      ID: <input value={bid} onChange={e => {const val = e.target.value; setBid(val); debId(val);}}/>
-      StPin: <input value={config.startingPin} onChange={e => config.setNewStPin(e.target.value)}/>
-      RefPer: <input value={period} onChange={e => {const val = e.target.value; setPeriod(val); debPer(val);}}/>
+      ID: <input value={bid} onChange={e => setBid(parseInt(e.target.value))}/>
+      StPin: <input value={board.config.startingPin}
+                    onChange={e => board.config.set({'startingPin': parseInt(e.target.value)})}/>
+      RefPer: <input value={period}
+                     onChange={e => {
+                       const val = parseInt(e.target.value);
+                       setPeriod(val);
+                       debPer(val);
+                     }}/>
       <table>
         <tbody>
         {_.map(_.range(0, 8), pin =>
-          <ConfigLine config={config.pins[pin]} startingPin={config.startingPin} key={pin}/>
+          <ConfigLine config={board.config} pin={pin} key={pin}/>
         )}
         </tbody>
       </table>
-      {
-        config.loaded ? <button onClick={() => config.update()}>Save config to board</button>
-          : <button onClick={() => getParent(config).fetchConfig(config.boardId)}>Load config</button>
-      }
+      <button onClick={() => board.config.save()}>Save config to board</button>
+      <button onClick={() => board.settings.save()}>Save settings to board</button>
+      <button onClick={() => board.setNewId(bid)}>Set new ID</button>
     </div>
 });
 
-const ControlPanel = observer(({data, config}) => {
+const ControlPanel = observer(({board}) => {
+  const {data, config} = board;
+
   return (data && config) ? <div className="board-control">
     {_.map(_.range(0, 8), pin =>
-      config.pins[pin].write ?
+      config.isPinWrite(pin) ?
         <div onClick={() => data.togglePin(pin)} className='button-like'
-                key={pin}>D{config.startingPin + pin} {data.pins[pin] ? 'ON' : 'OFF'}</div> : void 0
+             key={pin}>D{config.startingPin + pin} {data.isOn(pin) ? 'ON' : 'OFF'}</div> : void 0
     )}
-    {_.map(_.range(0, 8), pin => data.readPins[pin] ? 'D' + (config.startingPin + pin) + ' is ON' : '.'  ).join("") }
+    {_.map(_.range(0, 8), pin => data.isReadOn(pin) ? 'D' + (config.startingPin + pin) + ' is ON' : '.').join('')}
   </div> : <Loader/>
 });
 
 const Board = observer(({board}) => {
-  let pollInterval;
-
-  useEffect(() => {
-    if (board) {
-      board.fetchConfig()
-        .then(() => board.fetchData());
-
-        if (board.refreshPeriod) {
-          pollInterval = setInterval(() => board.fetchData(), board.refreshPeriod);
-          console.log('Set period on ', board.refreshPeriod);
-        }
-    }
-
-    return () => {
-      // Remove Board Model into storage
-      clearInterval(pollInterval);
-    }
-  }, [board, board.refreshPeriod]);
-
   return !board ? <Loader/> :
     <div className="board">
       <h3>Board #{board.bid}</h3>
-      {board.lastError ? <pre>ERR: {board.lastError}</pre> : ''}
-      <Configurator config={board.config} board={board}/>
-      <ControlPanel data={board.data} config={board.config}/>
+      {board.status.lastError ? <pre>ERR: {board.status.lastError}</pre> : ''}
+      <Configurator board={board}/>
+      <ControlPanel board={board}/>
     </div>
 })
 
@@ -83,7 +77,7 @@ const Boards = observer(() => {
   const appState = useContext(AppStateContext);
 
   return <div id="boards">{
-    _.map(appState.boards, board => <Board board={board} key={board.bid}/>)
+    entries(appState.boards).map(([bid, board]) => <Board board={board} key={bid}/>)
   }
   </div>
 })
