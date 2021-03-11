@@ -1,6 +1,7 @@
-//const _ = require('lodash');
+const _ = require('lodash');
 //const fs = require('fs');
-const ModbusRTU = require('modbus-serial');
+//const ModbusRTU = require('modbus-serial');
+const ModbusRTU = require('../modbus-serial-mock');
 const config = require('../config');
 
 class ModServer {
@@ -8,21 +9,21 @@ class ModServer {
   serialPort = null;
   modbusCalls = 0;
 
-  brd_data = 0;  // very tmp storage for board data (works only with one board in system)
-  brd_addr = 0;
-  getDataPin(pin) {
-    return this.brd_data & (1<<pin); // TODO: не забыть учитывать starting-pin
-  }
-
-  setDataPin(pin, val){
-    if (!!val) {
-      this.brd_data |= (1<<pin); // TODO: не забыть учитывать starting-pin
-    } else {
-      this.brd_data &= 0xFF^(1<<pin); // TODO: не забыть учитывать starting-pin
+//  brd_data = 0;  // very tmp storage for board data (works only with one board in system)
+  // brd_addr = 0;
+  /*  getDataPin(pin) {
+      return this.brd_data & (1<<pin); // TODO: не забыть учитывать starting-pin
     }
 
-    return this.brd_data;
-  }
+    setDataPin(pin, val){
+      if (!!val) {
+        this.brd_data |= (1<<pin); // TODO: не забыть учитывать starting-pin
+      } else {
+        this.brd_data &= 0xFF^(1<<pin); // TODO: не забыть учитывать starting-pin
+      }
+
+      return this.brd_data;
+    }*/
 
   async init(state) {
     // const state = await this.getSystemState();
@@ -37,31 +38,34 @@ class ModServer {
 
   waitModbusIdle() {
     if (!this.modbusCalls) {
+      this.modbusCalls++;
+
       return Promise.resolve();
     } else {
-      return new Promise(res =>
-        setTimeout(async () => {
-          await this.waitModbusIdle();
-          res();
-        }, 200)
+      return new Promise(res => {
+          const timer = setInterval(() => {
+         //   console.log('iteration', this.modbusCalls);
+            if (!this.modbusCalls) {
+              this.modbusCalls++;
+
+              clearInterval(timer);
+              res();
+            }
+            //   await this.waitModbusIdle();
+            //   res();
+          }, 200)
+        }
       );
     }
   }
 
   modbusQueue(slaveId, cb) {
-    return this.waitModbusIdle()
-      .then(() => this.modbusCalls++)
+ //   console.log('queue for', slaveId);
+    return this.waitModbusIdle(true)
       .then(() => this.master.setID(parseInt(slaveId)))
       .then(cb)
       .finally(() => this.modbusCalls--)
   }
-  //
-  // async getSystemState() {
-  //   const data = JSON.parse(fs.readFileSync(config.CONFIG_STORAGE_FILE));
-  //   data.ports = await this.getPortsList();
-  //
-  //   return data;
-  // }
 
   async getBoardConfig(id) {
     //------------------- we load from 0(zero) to include dataOffset word. Beware to load enough words to pick all meaningfull data.
@@ -70,7 +74,7 @@ class ModServer {
       .then(res => {
         const {data} = res;
 
-       // this.brd_addr = parseInt(data[0]);
+        // this.brd_addr = parseInt(data[0]);
 
         return {
           read: data[6],
@@ -84,15 +88,15 @@ class ModServer {
   }
 
   async getBoardData(id, addr) {
-    const [pins, readPins] = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr), 2))
- //   const arr = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr)-4, 10))
+    const [pins, readPins] = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(addr, 2))
+      //   const arr = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr)-4, 10))
       .then(x => x.data);
-  //  console.log('Pins', pins, 'readPins', readPins);
+    //  console.log('Pins', pins, 'readPins', readPins);
 
-  //  console.log('Arr', arr);
+    //  console.log('Arr', arr);
 
-  //  return {pins:0, readPins:0};
-    this.brd_data = parseInt(pins);
+    //  return {pins:0, readPins:0};
+    //  this.brd_data = parseInt(pins);
 
     return {pins, readPins};
   }
@@ -105,14 +109,14 @@ class ModServer {
   }
 
   async setBoardData({id, pins, addr}) {
-    this.brd_data = parseInt(pins);
-    this.brd_addr = addr;
-    const arr = [this.brd_data];
+    //  this.brd_data = parseInt(pins);
+    //  this.brd_addr = addr;
+    const arr = [pins];
 
-   // console.log(id, pins, addr);
+    // console.log(id, pins, addr);
 
     if (!addr) {
-      throw new Error("Tryin to ruin board with !addr");
+      throw new Error('Tryin to ruin board with !addr');
     }
 
     await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(addr, arr))
@@ -127,9 +131,9 @@ class ModServer {
   }
 
   setComPort(port) {
-   // console.log('compare:', this.serialPort, port);
+    // console.log('compare:', this.serialPort, port);
     if (this.serialPort === port) {
-    //  this.log('Port is not changed');
+      //  this.log('Port is not changed');
       return Promise.resolve();
     }
 

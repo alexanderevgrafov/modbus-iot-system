@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const {types, getParent, getSnapshot} = require('mobx-state-tree');
+const {types, getRoot, getParent, getSnapshot} = require('mobx-state-tree');
 const {
   CommonBoardConfigModel,
   CommonBoardDataModel,
@@ -13,33 +13,23 @@ const ServerBoardConfigModel = types.compose('ServerBoardConfigModel',
   types.model('',
     {})
     .actions(self => {
+      const board = getParent(self);
+      const manager = getRoot(self);
+
       return {
-        save() {
-          const parent = getParent(self);
-          const {bid} = parent;
+        saveToBoard() {
+          const app = manager.getApp();
 
-          console.log('SAVING Config to board', bid);
-
-          // const parent = getParent(self);
-          // const {bid} = parent;
-          // const data = {read: 0, write: 0, addr: 0, bid: self.boardId, startingPin: self.startingPin};
-          //
-          // _.each(_.range(0, 8), pin => {
-          //   const item = self.getPin(pin);
-          //
-          //   data.read |= item.read ? (1 << pin) : 0;
-          //   data.write |= item.write ? (1 << pin) : 0;
-          //   data.addr |= (item.addr & 0xF) << (4 * pin);
-          // })
-          //
-          // fetch('/config/' + bid, {method: 'post', body: JSON.stringify(data)})
-          //   .then(x => x.json())
-          //   .then(serverErrorCatch)
-          //   .then(() => {
-          //     parent.setId(self.boardId);
-          //     parent.clearLastError();
-          //   }) // Works only if no error (and if was actual change)
-          //   .catch(parent.setBoardError);
+          app.modServer.setBoardConfig({
+            id: board.bid,
+            bid: board.bid,
+            read: self.pinsRead,
+            write: self.pinsWrite,
+            addr: self.pinsAddr,
+            startingPin: self.startingPin,
+          })
+            .then(board.clearLastError)
+            .catch(board.setLastError);
         }
       }
     })
@@ -50,24 +40,21 @@ const ServerBoardDataModel = types.compose('BoardDataModel',
   types.model('',
     {})
     .actions(self => {
-      return {
-        save() {
-          const parent = getParent(self);
-          const {bid} = parent;
+      const board = getParent(self);
+      const manager = getRoot(self);
 
-          console.log('SAVE data to board', bid);
-          // let pins = 0;
-          //
-          // _.each(_.range(0, 8), pin => {
-          //   pins |= self.pins[pin] ? (1 << pin) : 0;
-          // })
-          //
-          // fetch('/data/' + bid, {method: 'post', body: JSON.stringify({pins, addr: self.addrOffset})})
-          //   .then(x => x.json())
-          //   .then(serverErrorCatch)
-          //   .then(() => parent.clearLastError())
-          //   .catch(parent.setBoardError);
-        }
+      return {
+        saveToBoard() {
+          const app = manager.getApp();
+
+          app.modServer.setBoardData({
+            id: board.bid,
+            pins: self.pins,
+            addr: board.dataOffset,
+          })
+            .then(board.clearLastError)
+            .catch(board.setLastError);
+        },
       }
     })
 )
@@ -77,13 +64,15 @@ const ServerBoardModel = types.compose('BoardModel',
   types.model('',
     {
       bid: types.identifierNumber,
+      dataOffset: 0,
       status: types.maybeNull(ServerBoardStatusModel),
       settings: types.maybeNull(ServerBoardSettingsModel),
       config: types.maybeNull(ServerBoardConfigModel),
       data: types.maybeNull(ServerBoardDataModel),
     })
     .actions(self => {
-      let modServer;
+      const manager = getRoot(self);
+      let refreshTimer;
 
       return {
         afterCreate() {
@@ -94,82 +83,103 @@ const ServerBoardModel = types.compose('BoardModel',
           self.settings = self.settings || ServerBoardSettingsModel.create();
           self.config.boardId = self.bid;
 
-          console.log('2. Board afterCreate', self.bid, getSnapshot(self));
+          //   console.log('2. Board afterCreate', self.bid, getSnapshot(self));
         },
 
-        init(ms) {
+        beforeDestroy() {
+          clearInterval(refreshTimer);
+        },
+
+        async init(ms) {
           modServer = ms;
 
-          self.fetchConfig();
-          self.fetchData();
+          try {
+            await self.fetchConfig();
+            await self.fetchData();
+            self.clearLastError();
+          } catch (e) {
+            self.setLastError(e);
+          }
         },
 
-        fetchConfig() {
+        set(dataJson, source) {
+          let changed = {};
+
+          _.each(['data', 'config', 'status', 'settings'], branch => {
+            const json = dataJson[branch];
+
+            if (json) {
+              const patch = self[branch].set(json, source);
+              //      console.log('Board', self.bid, branch, 'set as', json);
+
+              if (_.keys(patch).length) {
+                changed = {...changed, [branch]: patch};
+
+                if (source !== 'board' && self[branch].saveToBoard) {
+                  self[branch].saveToBoard();
+                }
+              }
+            }
+          })
+
+          if (_.keys(changed)) {
+            self.onChange(changed);
+          }
+        },
+
+        onChange(changed) {
+          let interval = _.get(changed, 'settings.refreshPeriod');
+
+          manager.onBoardChange(self.bid, changed);
+
+             // console.log('BRD CHNG', self.bid, changed);
+
+          if (!_.isUndefined(interval)) {
+            clearInterval(refreshTimer);
+
+            if (interval) {
+              refreshTimer = setInterval(self.fetchData, interval);
+            }
+          }
+        },
+
+        setDataPin(pin, val) {
+          let {pins} = self.data;
+
+          if (!!val) {
+            pins |= (1 << pin);
+          } else {
+            pins &= 0xFF ^ (1 << pin);
+          }
+
+          self.set({data: {pins}});
+        },
+
+        setDataOffset(x) {
+          self.dataOffset = x
+        },
+
+        async fetchConfig() {
           const {bid} = self;
+          const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
 
-          console.log('Get Config from', bid);
-
-          // return fetch('/config/' + bid)
-          //   .then(x => x.json())
-          //   .then(x => {
-          //     serverErrorCatch(x);
-          //     self.config.setFromMasks(x.data);
-          //     self.config.setNewStPin(x.data.startingPin);
-          //     self.data.setAddrOffset(x.data.dataOffset);
-          //     self.config.setLoaded(true);
-          //     //          self.bid = bid;
-          //
-          //     self.clearLastError();
-          //   })
-          //   .catch(e => {
-          //     self.setBoardError(e);
-          //     self.config.setLoaded(false);
-          //   });
+          self.set({config}, 'board');
+          self.setDataOffset(dataOffset);
         },
 
-        fetchData() {
-          console.log('Get Data from', self.bid);
-          // if (!self.data.addrOffset) {
-          //   const msg = 'Data offset need to be set before data fetch';
-          //   self.setBoardError(msg);
-          //   return; // Promise.reject();
-          // }
-          //
-          // return fetch('/data/' + self.bid + '/' + self.data.addrOffset)
-          //   .then(x => x.json())
-          //   .then(x => {
-          //     serverErrorCatch(x);
-          //     self.data.setFromMasks(x.data);
-          //     self.clearLastError();
-          //   })
-          //   .catch(self.setBoardError);
-        },
+        async fetchData() {
+          const data = await modServer.getBoardData(self.bid, self.dataOffset);
 
-        // setPeriod(x) {
-        //   self.refreshPeriod = parseInt(x);
-        // },
-        //
-        // setId(x) {
-        //   self.bid = parseInt(x);
-        // },
-
-        setByClient(data) {
-          self.set(data, 'client');
+          self.set({data}, 'board');
         },
 
         clearLastError() {
-          self.setLastError();
+          self.setLastError('');
         },
 
         setLastError(msg) {
-          self.set({lastError: msg});
+          self.set({status: {lastError: msg}});
         },
-
-        setBoardError(e) {
-          const appState = getParent(getParent(self));
-          appState.setErrorItem(e);
-          self.setLastError(e.message || e);
-        }
       }
     })
 )

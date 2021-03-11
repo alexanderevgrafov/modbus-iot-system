@@ -1,91 +1,105 @@
-import {types, getParent} from 'mobx-state-tree'
-import {serverErrorCatch} from '../client/Utils'
-import {CommonBoardConfigModel, CommonBoardDataModel} from '../../common-models/BoardModel';
+import {types, getParent, getSnapshot} from 'mobx-state-tree'
+import {serverErrorCatch} from '../Utils'
+import {
+  CommonBoardConfigModel,
+  CommonBoardDataModel,
+  CommonBoardStatusModel as ClientBoardStatusModel,
+  CommonBoardSettingsModel
+} from '../../common-models/BoardModel';
 import {CommonModel} from '../../common-models/Common';
 
 const ClientBoardConfigModel = types.compose('ClientBoardConfigModel',
   CommonBoardConfigModel,
   types.model('',
     {
-      loaded: false,
+    })
+    .views(self => {
+      return {
+        pinAddr(pin) {
+          return (self.pinsAddr >> (pin * 4)) & 0xF;
+        },
+
+        isPinWrite(pin) {
+          return self.pinsWrite & (1 << pin);
+        },
+
+        isPinRead(pin) {
+          return self.pinsRead & (1 << pin);
+        },
+      }
     })
     .actions(self => {
       return {
+        setPinAddr(pin, addr) {
+          if (!!addr) {
+            self.pinsAddr |= (addr & 0xF) << (4 * pin);
+          } else {
+            self.pinsAddr &= 0xffffffff ^ (0xF << (4 * pin));
+          }
+        },
+
+        setPinWrite(pin, x) {
+          if (!!x) {
+            self.pinsWrite |= (1 << pin);
+            self.setPinRead(pin, false);
+          } else {
+            self.pinsWrite &= 0xFF ^ (1 << pin);
+          }
+        },
+
+        setPinRead(pin, x) {
+          if (!!x) {
+            self.pinsRead |= (1 << pin);
+            self.setPinWrite(pin, false);
+          } else {
+            self.pinsRead &= 0xFF ^ (1 << pin);
+          }
+        },
+
         save() {
           const parent = getParent(self);
-          const {bid} = parent;
-          const data = {read: 0, write: 0, addr: 0, bid: self.boardId, startingPin: self.startingPin};
+          const json = getSnapshot(self);
 
-          _.each(_.range(0, 8), pin => {
-            const item = self.getPin(pin);
-
-            data.read |= item.read ? (1 << pin) : 0;
-            data.write |= item.write ? (1 << pin) : 0;
-            data.addr |= (item.addr & 0xF) << (4 * pin);
-          })
-
-          fetch('/config/' + bid, {method: 'post', body: JSON.stringify(data)})
-            .then(x => x.json())
-            .then(serverErrorCatch)
-            .then(() => {
-              parent.setId(self.boardId);
-              parent.clearLastError();
-            }) // Works only if no error (and if was actual change)
-            .catch(parent.setBoardError);
+          parent.save({config: json});
         }
       }
     })
-)
+);
 
 const ClientBoardDataModel = types.compose('BoardDataModel',
   CommonBoardDataModel,
   types.model('',
     {
-      addrOffset: 0,
-      pins: types.array(types.boolean),
-      readPins: types.array(types.boolean),
     })
     .actions(self => {
       return {
-        afterCreate() {
-          self.pins = self.readPins = [false, false, false, false, false, false, false, false];
-        },
-        togglePin(pin) {
-          self.pins.splice(pin, 1, !self.pins[pin]);
-          self.update();
-        },
-
-        setFromMasks({pins, readPins}) {
-          _.each(_.range(0, 8), pin => {
-            self.pins[pin] = !!(pins & (1 << pin));
-            self.readPins[pin] = !!(readPins & (1 << pin));
-          })
-        },
-
-        setAddrOffset(x) {
-          self.addrOffset = parseInt(x);
-        },
-
         save() {
           const parent = getParent(self);
-          const {bid} = parent;
-          let pins = 0;
+          const json = getSnapshot(self);
 
-          _.each(_.range(0, 8), pin => {
-            pins |= self.pins[pin] ? (1 << pin) : 0;
-          })
+          parent.save({data: json});
+        }
+      }
+    })
+)
+const ClientBoardSettingsModel = types.compose('BoardSettingsModel',
+  CommonBoardSettingsModel,
+  types.model('',
+    {
+    })
+    .actions(self => {
+      return {
+        save() {
+          const parent = getParent(self);
+          const json = getSnapshot(self);
 
-          fetch('/data/' + bid, {method: 'post', body: JSON.stringify({pins, addr: self.addrOffset})})
-            .then(x => x.json())
-            .then(serverErrorCatch)
-            .then(() => parent.clearLastError())
-            .catch(parent.setBoardError);
+          parent.save({settings: json});
         }
       }
     })
 )
 
-const CommonBoardModel = types.compose('BoardModel',
+const ClientBoardModel = types.compose('BoardModel',
   CommonModel,
   types.model('',
     {
@@ -97,56 +111,25 @@ const CommonBoardModel = types.compose('BoardModel',
     })
     .actions(self => {
       return {
-        afterCreate() {
-          self.data = BoardDataModel.create();
-          self.config = BoardConfigModel.create();
-          self.config.boardId = self.bid;
-        },
-
-        fetchConfig(boardId) {
-          const bid = (boardId || self.bid);
-
-          return fetch('/config/' + bid)
+        save(json) {
+          fetch('/board/' + self.bid, {method: 'post', body: JSON.stringify(json)})
             .then(x => x.json())
-            .then(x => {
-              serverErrorCatch(x);
-              self.config.setFromMasks(x.data);
-              self.config.setNewStPin(x.data.startingPin);
-              self.data.setAddrOffset(x.data.dataOffset);
-              self.config.setLoaded(true);
-              //          self.bid = bid;
-
-              self.clearLastError();
-            })
-            .catch(e => {
-              self.setBoardError(e);
-              self.config.setLoaded(false);
-            });
-        },
-
-        fetchData() {
-          if (!self.data.addrOffset) {
-            const msg = 'Data offset need to be set before data fetch';
-            self.setBoardError(msg);
-            return; // Promise.reject();
-          }
-
-          return fetch('/data/' + self.bid + '/' + self.data.addrOffset)
-            .then(x => x.json())
-            .then(x => {
-              serverErrorCatch(x);
-              self.data.setFromMasks(x.data);
-              self.clearLastError();
-            })
+            .then(serverErrorCatch)
+            .then(() => self.clearLastError())
             .catch(self.setBoardError);
         },
 
-        setPeriod(x) {
-          self.refreshPeriod = parseInt(x);
-        },
+        setNewId(newbid){
+          const json = {
+            bid: self.bid,
+            newbid
+          };
 
-        setId(x) {
-          self.bid = parseInt(x);
+          fetch('/board/newid', {method: 'post', body: JSON.stringify(json)})
+            .then(x => x.json())
+            .then(serverErrorCatch)
+            .then(() => self.clearLastError())
+            .catch(self.setBoardError);
         },
 
         clearLastError() {
@@ -164,6 +147,10 @@ const CommonBoardModel = types.compose('BoardModel',
         }
       }
     })
-)
+);
 
-export {PinConfigModel, BoardConfigModel, BoardDataModel, BoardModel};
+export {
+  ClientBoardConfigModel as BoardConfigModel,
+  ClientBoardDataModel as BoardDataModel,
+  ClientBoardModel as BoardModel
+};
