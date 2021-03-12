@@ -218,7 +218,11 @@ const AppState = types
         const {id, data} = payload;
         const control = self.layout.get(id);
 
-        control.changeState(data.state);
+        if (control) {
+          control.changeState(data.state);
+        } else {
+          console.error('Control not found', id);
+        }
       }
     }
   })
