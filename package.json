@@ -35,6 +35,7 @@
     "less": "^4.1.0",
     "lodash": "^4.17.20",
     "modbus-serial": "^8.0.1",
+    "node-cron": "^3.0.0",
     "socket.io": "^3.1.1",
     "socket.io-client": "^3.1.1"
   }

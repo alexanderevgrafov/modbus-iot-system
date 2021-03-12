@@ -23,7 +23,6 @@ class PumpModule extends PluginBase {
       this.status = assumed;
       board.setDataPin(relayPin, assumed);
 
-
       console.log('Pump', assumed ? 'ON' : 'OFF', dayjs().format('HH:mm'));
 
       this.emitChange('pump', {status: this.getStatusText()});

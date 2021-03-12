@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const MODULES_PATH = '../modules/';
 
-const list = ['pump', 'buttons'];
+const list = ['pump', 'buttons', 'timer'];
 
 class PluginsManager {
   application = null;

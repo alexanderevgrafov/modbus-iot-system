@@ -10,8 +10,8 @@ class ButtonsModule extends PluginBase {
 
   // buttons = null;
 
-  init(config, app) {
-    super.init(config, app);
+  init(plug, app) {
+    super.init(plug, app);
 
     this.buttons = _.fromPairs(
       _.map(this.config.buttons, (conf, indx) => {
@@ -71,9 +71,10 @@ class ButtonsModule extends PluginBase {
       const board = this.application.boardsManager.getBoard(bid);
 
       if (board) {
-        board.set({data: {pins: toggleBit(board.data.pins, pin, change.value)}})
+        board.setDataPin(pin, change.value);
       }
-      board && board.data.togglePin(pin, change.value);
+
+      // board && board.data.togglePin(pin, change.value);
     }
   }
 }
