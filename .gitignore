@@ -6,4 +6,4 @@
 .vscode/ipch
 public
 node_modules
-/configStorage.json
+/configStorage.json.ok

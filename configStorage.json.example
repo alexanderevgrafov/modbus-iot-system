@@ -1,41 +1,100 @@
 {
-  "boards": [
-    {
-      "bid": 222,
-      "status": {
-        "lastError": ""
+  port: '/dev/tty.Bluetooth-Incoming-Port',
+  boards: {
+    '16': {
+      bid: 16,
+      dataOffset: 21,
+      status: {
+        lastError: '',
       },
-      "settings": {
-        "refreshPeriod": 5000
+      settings: {
+        refreshPeriod: 0,
       },
-      "config": {
-        "loaded": false,
-        "boardId": 16,
-        "startingPin": 0,
-        "pinsRead": 0,
-        "pinsWrite": 0,
-        "pinsAddr": 0
+      config: {
+        boardId: 16,
+        typeId: 0,
+        startingPin: 5,
+        pinsRead: 6,
+        pinsWrite: 57,
+        pinsAddr: 0,
       },
-      "data": {}
+      data: {
+        pins: 48,
+        readPins: 0,
+      },
     },
-    {
-      "bid": 16,
-      "status": {
-        "lastError": ""
+    '222': {
+      bid: 222,
+      dataOffset: 22,
+      status: {
+        lastError: 'Mocked Error',
       },
-      "settings": {
-        "refreshPeriod": 0
+      settings: {
+        refreshPeriod: 0,
       },
-      "config": {
-        "loaded": false,
-        "boardId": 16,
-        "startingPin": 0,
-        "pinsRead": 0,
-        "pinsWrite": 0,
-        "pinsAddr": 0
+      config: {
+        boardId: 222,
+        typeId: 0,
+        startingPin: 3,
+        pinsRead: 6,
+        pinsWrite: 25,
+        pinsAddr: 0,
       },
-      "data": {}
-    }
-  ],
-  "port": "/dev/tty.Bluetooth-Incoming-Port"
+      data: {
+        pins: 0,
+        readPins: 0,
+      },
+    },
+  },
+  plugins: {
+    pump: {
+      isActive: true,
+      config: {
+        start_at: 0,
+        stop_at: 30,
+        relayPin: 0,
+        boardId: 16,
+        events: [
+          {
+            bid: 16,
+            paths: [
+              'data.pins',
+            ],
+          },
+        ],
+        interval: 2500,
+      },
+    },
+    buttons: {
+      isActive: true,
+      config: {
+        buttons: [
+          {
+            label: '#h345ere',
+            bid: 222,
+            pin: 0,
+          },
+          {
+            label: 'Board16',
+            bid: 16,
+            pin: 4,
+          },
+        ],
+        events: [
+          {
+            bid: 222,
+            paths: [
+              'data.pins',
+            ],
+          },
+          {
+            bid: 16,
+            paths: [
+              'data.pins',
+            ],
+          },
+        ],
+      },
+    },
+  },
 }

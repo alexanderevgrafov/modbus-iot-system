@@ -1,37 +1,66 @@
-const BaseModule = require("./BaseModule")
-const dayjs = require("dayjs")
+const PluginBase = require('./_PluginBaseClass')
+const dayjs = require('dayjs')
 
-class PumpModule extends BaseModule {
-  interval = 60000;
-  name = 'Pump';
-  config = {
-    relayPin: 0,   // TODO: учитывать starting pin
-    boardId: 16,  //  каждый плагин должен отвечать либо всем платам либо конкретной
-  }
+const NAME = 'Pump';
+
+class PumpModule extends PluginBase {
+  title = NAME;
 
   loop(now, lastLoop) {
-    const minutes = Math.floor(now / 60000);
-   // const seconds = Math.floor(now / 1000);
+    const {boardId: bid, start_at, stop_at, relayPin} = this.config;
+    // const minutes = Math.floor(now / 60000);
+    const minutes = Math.floor(now / 1000);
 
-    const current = !!this.modServer.getDataPin(this.config.relayPin);
+    const board = this.application.boardsManager.getBoard(bid);
+
+    const current = !!board.data.isOn(relayPin);
     const cycle = minutes % 60;
-    const assumed = cycle < 12;
+    const assumed = cycle > start_at && cycle < stop_at;
 
-    //console.log('Pump module', cycle, current, assumed);
+    console.log('Pump module', cycle, current, assumed);
 
     if (current !== assumed) {
-      this.modServer.setDataPin(this.config.relayPin, assumed);
+      this.status = assumed;
+      board.setDataPin(relayPin, assumed);
 
-      console.log('Pump', assumed ? 'ON':'OFF', dayjs().format('HH:mm'));
+      console.log('Pump', assumed ? 'ON' : 'OFF', dayjs().format('HH:mm'));
 
-      this.modServer.setBoardData({
-        id: this.config.boardId,
-        pins: this.modServer.brd_data,
-        addr: this.modServer.brd_addr})
+      this.emitChange('pump', {status: this.getStatusText()});
+
+      // this.modServer.setBoardData({
+      //   id: this.config.boardId,
+      //   pins: this.modServer.brd_data,
+      //   addr: this.modServer.brd_addr})
     }
 
   }
+
+  getLayout() {
+    return {
+      pump:{
+        type:'information',
+        label:'Pump status',
+        state:{
+          status: this.getStatusText(),
+        }
+      }
+    }
+  }
+
+  getStatusText(){
+    return this.status ? 'ON' : 'OFF';
+  }
 }
 
+const defaultConfig = {
+  start_at: 0,
+  stop_at: 0,
+  relayPin: 0,
+  boardId: 0,
+};
 
-module.exports=new PumpModule();
+module.exports = {
+  Class: PumpModule,
+  title: NAME,
+  defaultConfig
+}
