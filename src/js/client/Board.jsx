@@ -5,17 +5,31 @@ import {entries} from 'mobx';
 import {Loader} from './Loader'
 import {AppStateContext} from './models/AppState';
 
-const ConfigLine = observer(({config, pin}) => {
+const ConfigLine = observer(({board, pin}) => {
+  const {config, data} = board;
   const isRead = config.isPinRead(pin);
   const isWrite = config.isPinWrite(pin);
   const addr = config.pinAddr(pin);
   const {startingPin} = config;
 
   return <tr>
-    <td onClick={() => config.setPinRead(pin, !isRead)}>D{startingPin + pin}{isRead ? '#' : void 0}</td>
-    <td><input onChange={e => config.setPinAddr(pin, parseInt(e.target.value) - config.startingPin - pin)}
-               value={addr ? config.startingPin + pin + addr : 0}/></td>
-    <td onClick={() => config.setPinWrite(pin, !isWrite)}>D{startingPin + pin}{isWrite ? '#' : void 0}</td>
+    <td onClick={() => config.setPinRead(pin, !isRead)}>Pin {pin}</td>
+    <td><input onChange={e => config.setPinAddr(pin, parseInt(e.target.value))}
+               value={addr ? addr : 0}/></td>
+    <td onClick={() => {
+      isRead ? config.setPinWrite(pin, true) :
+        isWrite ? config.setPinWrite(pin, false) : config.setPinRead(pin, true)
+    }}>
+      D{startingPin + pin}
+      {isWrite ? <>'(output)'
+        <div onClick={() => data.togglePin(pin)} className='button-like'
+             key={pin}>D{startingPin + pin} {data.isOn(pin) ? 'ON' : 'OFF'}</div>
+      </> : void 0}
+      {isRead ? '(input'+(addr ? ' linked to ' + (addr + pin + startingPin)  : 0)+')' : void 0}
+      {
+        data.isReadOn(pin) ? '[ON]' : void 0
+      }
+    </td>
   </tr>
 });
 
@@ -44,7 +58,7 @@ const Configurator = observer(({board}) => {
       <table>
         <tbody>
         {_.map(_.range(0, 8), pin =>
-          <ConfigLine config={board.config} pin={pin} key={pin}/>
+          <ConfigLine config={board.config} board={board} pin={pin} key={pin}/>
         )}
         </tbody>
       </table>
@@ -56,18 +70,6 @@ const Configurator = observer(({board}) => {
     </div>
 });
 
-const ControlPanel = observer(({board}) => {
-  const {data, config} = board;
-
-  return (data && config) ? <div className="board-control">
-    {_.map(_.range(0, 8), pin =>
-      config.isPinWrite(pin) ?
-        <div onClick={() => data.togglePin(pin)} className='button-like'
-             key={pin}>D{config.startingPin + pin} {data.isOn(pin) ? 'ON' : 'OFF'}</div> : void 0
-    )}
-    {_.map(_.range(0, 8), pin => data.isReadOn(pin) ? 'D' + (config.startingPin + pin) + ' is ON' : '.').join('')}
-  </div> : <Loader/>
-});
 
 const Board = observer(({board}) => {
   return !board ? <Loader/> :
@@ -75,7 +77,6 @@ const Board = observer(({board}) => {
       <h3>Board #{board.bid}</h3>
       {board.status.lastError ? <pre>ERR: {board.status.lastError}</pre> : ''}
       <Configurator board={board}/>
-      <ControlPanel board={board}/>
     </div>
 })
 
