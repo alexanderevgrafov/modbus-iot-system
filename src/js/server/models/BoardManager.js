@@ -51,10 +51,17 @@ const BoardsManager = types
         }
       },
 */
-      addBoard(data, ms) {
-        const board = self.boards.put(data);
+      addBoard(data) {
+        console.log('Adding1', data);
 
-        board.init(ms);
+        const fullData = {data:{}, config:{}, settings:{}, status:{}, ...data};
+
+        console.log('Adding2', fullData);
+        const board = self.boards.put(fullData);
+
+        console.log('Added', board)
+
+        board.init(application.modServer);
         board.onChange(data);
 
         return board;
@@ -93,7 +100,7 @@ const BoardsManager = types
                      name: 'removeBoard',
                      args: [cur]
                    }])*/
-            self.addBoard(snap, application.modServer)
+            self.addBoard(snap)
             self.removeBoard(cur);
           })
           .catch(handleModServerError(cur))
@@ -116,7 +123,7 @@ const BoardsManager = types
         console.log('Init boards manager');
 
         _.each(data.boards, dt => {
-          self.addBoard(dt, app.modServer);
+          self.addBoard(dt);
         })
       },
 

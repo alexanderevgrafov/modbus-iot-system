@@ -160,17 +160,25 @@ const ServerBoardModel = types.compose('BoardModel',
         },
 
         async fetchConfig() {
-          const {bid} = self;
-          const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
+          try {
+            const {bid} = self;
+            const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
 
-          self.set({config}, 'board');
-          self.setDataOffset(dataOffset);
+            self.set({config}, 'board');
+            self.setDataOffset(dataOffset);
+          } catch(e) {
+            self.setLastError(e);
+          }
         },
 
         async fetchData() {
-          const data = await modServer.getBoardData(self.bid, self.dataOffset);
+          try {
+            const data = await modServer.getBoardData(self.bid, self.dataOffset);
 
-          self.set({data}, 'board');
+            self.set({data}, 'board');
+          } catch (e) {
+            self.setLastError(e);
+          }
         },
 
         clearLastError() {

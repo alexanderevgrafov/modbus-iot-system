@@ -119,6 +119,13 @@ const ClientBoardModel = types.compose('BoardModel',
             .catch(self.setBoardError);
         },
 
+        remove(){
+          fetch('/board/' + self.bid, {method: 'delete'})
+            .then(x => x.json())
+            .then(serverErrorCatch)
+            .catch(self.setBoardError);
+        },
+
         setNewId(newbid){
           const json = {
             bid: self.bid,

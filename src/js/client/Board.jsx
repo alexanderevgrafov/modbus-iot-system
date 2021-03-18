@@ -29,6 +29,8 @@ const Configurator = observer(({board}) => {
   return !board.config ? 'Configurator will be here' :
     <div className="board-config">
       ID: <input value={bid} onChange={e => setBid(parseInt(e.target.value))}/>
+      <br/>
+      <button onClick={() => board.setNewId(bid)}>Set new ID</button>
       StPin: <input value={board.config.startingPin}
                     onChange={e => board.config.set({'startingPin': parseInt(e.target.value)})}/>
       RefPer: <input value={period}
@@ -37,6 +39,8 @@ const Configurator = observer(({board}) => {
                        setPeriod(val);
                        debPer(val);
                      }}/>
+      <br/>
+      <button onClick={() => board.settings.save()}>Save settings to board</button>
       <table>
         <tbody>
         {_.map(_.range(0, 8), pin =>
@@ -44,9 +48,11 @@ const Configurator = observer(({board}) => {
         )}
         </tbody>
       </table>
+      <br/>
       <button onClick={() => board.config.save()}>Save config to board</button>
-      <button onClick={() => board.settings.save()}>Save settings to board</button>
-      <button onClick={() => board.setNewId(bid)}>Set new ID</button>
+      <br/>
+      <button onClick={() => board.remove()}>Remove</button>
+
     </div>
 });
 
@@ -76,9 +82,11 @@ const Board = observer(({board}) => {
 const Boards = observer(() => {
   const appState = useContext(AppStateContext);
 
-  return <div id="boards">{
-    entries(appState.boards).map(([bid, board]) => <Board board={board} key={bid}/>)
-  }
+  return <div id="boards">
+    <div className='section-title'>Boards</div>
+    {
+      entries(appState.boards).map(([bid, board]) => <Board board={board} key={bid}/>)
+    }
   </div>
 })
 

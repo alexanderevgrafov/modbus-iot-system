@@ -87,6 +87,8 @@ async function routes(fastify, options) {
   }
 
   async function addBoard({body: json}) {
+    json.bid = parseInt(json.bid);
+
     return await app.boardsManager.addBoard(json);
   }
 
@@ -116,7 +118,7 @@ async function routes(fastify, options) {
     return await app.pluginsManager.getPluginsList();
   }
 
-  async function setPluginsList({body:{list}}) {
+  async function setPluginsList({body: {list}}) {
     return await app.pluginsManager.setPluginsList(list);
   }
 

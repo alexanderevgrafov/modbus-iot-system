@@ -2,6 +2,7 @@ import {createContext} from 'react';
 import {types, getParent, values} from 'mobx-state-tree'
 import {serverErrorCatch} from '../Utils';
 import {BoardModel} from './ClientBoardModel';
+import {BoardScanner} from './BoardScanner';
 
 const ComPortModel = types.model('ComPortModel', {
   path: '',
@@ -12,73 +13,6 @@ const ErrorRecordModel = types.model('ErrorRecordModel', {
   text: '',
   date: types.Date,
 })
-
-const BoardScanner = types
-  .model('Board Scanner Model', {
-    from: 1,
-    to: 10,
-    next: 1,
-    scanning: false,
-    list: types.array(types.number),
-  })
-  .actions(self => {
-    return {
-      toggleScanning() {
-        self.scanning = !self.scanning;
-
-        self.scanNext();
-      },
-
-      scanNext() {
-        self.scanId(self.next)
-          .then(x => {
-            if (x) {
-              self.setNext(self.next + 1);
-              if (x.ok) {
-                self.setList([...self.list, x.bid]);
-              }
-              if (self.next > self.to) {
-                self.setScanning(false);
-                self.setNext(self.from);
-              } else {
-                self.scanNext();
-              }
-            }
-          })
-      },
-
-      scanId(bid) {
-        if (self.scanning) {
-          return fetch('/config/' + bid)
-            .then(x => x.json())
-            .then(x => ({bid, ...x}))
-            .catch(getParent(self).setErrorItem);
-        } else {
-          return Promise.resolve(false);
-        }
-      },
-
-      setFrom(x) {
-        self.next = self.from = parseInt(x)
-      },
-
-      setTo(x) {
-        self.to = parseInt(x)
-      },
-
-      setNext(x) {
-        self.next = x
-      },
-
-      setScanning(x) {
-        self.scanning = !!x
-      },
-
-      setList(x) {
-        self.list = x
-      },
-    }
-  })
 
 const LayoutControlModel = types
   .model('Layout Control Model', {
