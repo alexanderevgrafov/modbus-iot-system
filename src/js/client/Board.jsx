@@ -13,7 +13,7 @@ const ConfigLine = observer(({config, pin}) => {
 
   return <tr>
     <td onClick={() => config.setPinRead(pin, !isRead)}>D{startingPin + pin}{isRead ? '#' : void 0}</td>
-    <td><input onChange={e => config.setPinAddr(pin, e.target.value)}
+    <td><input onChange={e => config.setPinAddr(pin, parseInt(e.target.value) - config.startingPin - pin)}
                value={addr ? config.startingPin + pin + addr : 0}/></td>
     <td onClick={() => config.setPinWrite(pin, !isWrite)}>D{startingPin + pin}{isWrite ? '#' : void 0}</td>
   </tr>

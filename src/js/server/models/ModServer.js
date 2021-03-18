@@ -75,8 +75,7 @@ class ModServer {
         const {data} = res;
 
         // this.brd_addr = parseInt(data[0]);
-
-        return {
+        const ret = {
           read: data[6],
           write: data[7],
           addr: (data[11] << 16) | (data[10]),
@@ -84,6 +83,10 @@ class ModServer {
           startingPin: data[5],
           typeId: data[3]
         }
+
+        console.log('Config for', id, 'returns', ret);
+
+        return ret;
       })
   }
 

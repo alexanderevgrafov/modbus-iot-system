@@ -177,8 +177,8 @@ const ServerBoardModel = types.compose('BoardModel',
           self.setLastError('');
         },
 
-        setLastError(msg) {
-          self.set({status: {lastError: msg}});
+        setLastError(e) {
+          self.set({status: {lastError: e.message || e}});
         },
       }
     })
