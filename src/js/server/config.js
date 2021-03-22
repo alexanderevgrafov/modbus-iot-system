@@ -9,6 +9,9 @@ const defaults = {
   WS_SERVER_PORT: 567,
 }
 
-const config = Object.assign({}, defaults, process.env, require('dotenv').config().parsed || {});
+const dotenv = require('dotenv').config().parsed;
+const config = Object.assign({}, defaults, process.env, dotenv || {});
+
+//console.log(config, dotenv, process.env );
 
 module.exports=config;

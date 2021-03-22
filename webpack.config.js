@@ -1,22 +1,17 @@
-const webpack = require('webpack'),
-  //WebpackNotifierPlugin = require( 'webpack-notifier' ),
-  HtmlWebpackPlugin = require('html-webpack-plugin'),
-  path = require('path'),
-  {CleanWebpackPlugin} = require('clean-webpack-plugin'),
-  //   InterpolateHtmlPlugin = require( 'interpolate-html-plugin' ),
-  //   package_json          = require( './package.json' ),
-  develop = process.argv.indexOf('--mode=development') >= 0;
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require('path');
+const {CleanWebpackPlugin} = require('clean-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
+
+develop = process.argv.indexOf('--mode=development') >= 0;
 
 console.log(process.argv.join(' | '));
 
 process.env.NODE_ENV = develop ? 'development' : 'production';
 
 const dist = path.join(__dirname, process.env.WEBPACK_DIST || 'public'),
-  //   paths                = require( './paths' ),
-//      getClientEnvironment = require( './env' ),
-//      publicPath           = paths.servedPath,
-//      publicUrl            = publicPath.slice( 0, -1 ),
-//      env                  = getClientEnvironment( publicUrl ),
+
 
   plugins = [
     new webpack.ProvidePlugin({
@@ -24,7 +19,8 @@ const dist = path.join(__dirname, process.env.WEBPACK_DIST || 'public'),
       //   jQuery   : 'jquery',
       //   jQueryUI : 'jquery-ui',
       _: 'lodash'
-    })
+    }),
+    new Dotenv(),
   ];
 /*
 if( !develop && env.stringified[ 'process.env' ].NODE_ENV !== '"production"' ) {
@@ -110,8 +106,8 @@ let config = {
         use: ['style-loader', 'css-loader', 'less-loader']
       },
       {
-          test   : /\.css$/,
-          use: ['style-loader','css-loader']
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
       }
       /*
       {

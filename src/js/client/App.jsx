@@ -11,8 +11,10 @@ import {io} from 'socket.io-client';
 import {applySnapshot, getSnapshot} from 'mobx-state-tree';
 import './styles.less';
 
-const socketServerPath = 'localhost:567';
+const socketServerPath = 'localhost:' + process.env.WS_SERVER_PORT;
 const socket = io(socketServerPath);
+
+console.log('WS server path used', socketServerPath);
 
 const onWindowOrTabClose = appState => async e => {
   console.log('unmounting...');
