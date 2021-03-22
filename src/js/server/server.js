@@ -10,7 +10,7 @@ app.init()
 
 function cleanUpServer(eventType, reason, promise){
   app.saveSystemState();
-  console.log('Exit after', eventType, 'Reason:', reason, 'Data:', promise);
+  console.log('Exit after', eventType, 'Reason:', reason, 'Promise:', promise);
 
   return process.exit();
 }

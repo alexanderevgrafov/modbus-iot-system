@@ -103,7 +103,7 @@ const BoardsManager = types
             self.addBoard(snap)
             self.removeBoard(cur);
           })
-          .catch(handleModServerError(cur))
+          .catch(board.setLastError)
       },
 
       removeBoard(bid) {
