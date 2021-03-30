@@ -15,10 +15,8 @@ const BoardsManager = types
     return {
       afterCreate() {
         onPatch(self.boards, patch => {
-          // console.log('PATCH for boards', patch);
           if ((patch.op === 'add' || patch.op === 'remove') && patch.path.match(/^\/\d+$/)) {
-            console.log('Emitted state reload by', patch);
-            application.emit('stateReload');
+            application.emit('stateReload', null, 'State reload');
           }
         })
       },
@@ -52,14 +50,10 @@ const BoardsManager = types
       },
 */
       addBoard(data) {
-        console.log('Adding1', data);
-
         const fullData = {data:{}, config:{}, settings:{}, status:{}, ...data};
-
-        console.log('Adding2', fullData);
         const board = self.boards.put(fullData);
 
-        console.log('Added', board)
+        console.log('Board', board.bid,'is added');
 
         board.init(application.modServer);
         board.onChange(data);

@@ -13,8 +13,15 @@ const ServerBoardConfigModel = types.compose('ServerBoardConfigModel',
   types.model('',
     {})
     .actions(self => {
-      const board = getParent(self);
-      const manager = getRoot(self);
+      let board;
+      let manager;
+
+      try {
+        board = getParent(self);
+        manager = getRoot(self);
+      } catch (e) {
+        console.log('Board config error in INIT', e.message);
+      }
 
       return {
         saveToBoard() {
@@ -40,8 +47,16 @@ const ServerBoardDataModel = types.compose('BoardDataModel',
   types.model('',
     {})
     .actions(self => {
-      const board = getParent(self);
-      const manager = getRoot(self);
+      let board;
+      let manager;
+
+      try {
+        board = getParent(self);
+        manager = getRoot(self);
+      } catch (e) {
+        console.log('Board data error in INIT', e.message);
+      }
+
 
       return {
         saveToBoard() {

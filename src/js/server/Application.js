@@ -114,14 +114,22 @@ class Application {
 
 
     io.listen(config.WS_SERVER_PORT);
+    console.log('Socket IO server on', config.WS_SERVER_PORT);
 
     //TODO: change this to 'Emit after all clients are connected'
     setTimeout(()=>    this.emit('stateReload'), 3000);
   }
 
-  emit(command, data) {
-//    console.log('Emit', command, data);
-    io.sockets.emit(command, data);
+  emit(command, data, comment) {
+    const count = io.sockets.size;
+
+    if (count) {
+      io.sockets.emit(command, data);
+
+      comment && console.log('Emit', command, 'to', count);
+    }
+
+    return count;
   }
 
   handleError(e) {

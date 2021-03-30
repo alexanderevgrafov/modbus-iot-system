@@ -11,7 +11,7 @@ import {io} from 'socket.io-client';
 import {applySnapshot, getSnapshot} from 'mobx-state-tree';
 import './styles.less';
 
-const socketServerPath = 'localhost:' + process.env.WS_SERVER_PORT;
+const socketServerPath = process.env.WS_SERVER_HOST + ':' + process.env.WS_SERVER_PORT;
 const socket = io(socketServerPath);
 
 console.log('WS server path used', socketServerPath);

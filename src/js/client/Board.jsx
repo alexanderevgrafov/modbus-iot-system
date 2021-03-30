@@ -21,8 +21,8 @@ const ConfigLine = observer(({board, pin}) => {
         isWrite ? config.setPinWrite(pin, false) : config.setPinRead(pin, true)
     }}>
       D{startingPin + pin}
-      {isWrite ? <>'(output)'
-        <div onClick={() => data.togglePin(pin)} className='button-like'
+      {isWrite ? <>(output)
+        <div onClick={e => {data.togglePin(pin); e.stopPropagation();}} className='button-like'
              key={pin}>D{startingPin + pin} {data.isOn(pin) ? 'ON' : 'OFF'}</div>
       </> : void 0}
       {isRead ? '(input'+(addr ? ' linked to ' + (addr + pin + startingPin)  : 0)+')' : void 0}
