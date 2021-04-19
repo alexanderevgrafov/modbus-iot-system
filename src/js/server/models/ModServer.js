@@ -94,7 +94,8 @@ class ModServer {
     const [pins, readPins] = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(addr, 2))
       //   const arr = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr)-4, 10))
       .then(x => x.data);
-    //  console.log('Pins', pins, 'readPins', readPins);
+
+      //console.log('GetData: ', id, addr, pins, readPins);
 
     //  console.log('Arr', arr);
 
@@ -116,7 +117,7 @@ class ModServer {
     //  this.brd_addr = addr;
     const arr = [pins];
 
-    // console.log(id, pins, addr);
+    //console.log('setData: ', id, addr, pins);
 
     if (!addr) {
       throw new Error('Tryin to ruin board with !addr');
@@ -149,7 +150,7 @@ class ModServer {
       const connectorFunc = () => {
         if (port) {
           this.master.connectRTUBuffered(port, {baudRate: config.SERIAL_BAUDRATE}, portChange)
-          this.master.setTimeout(500);
+          this.master.setTimeout(1500);
         } else {
           portChange();
         }
@@ -157,12 +158,13 @@ class ModServer {
 
       try {
         if (this.serialPort) {
-          //         this.log("Closing port " + this.serialPort);
+          this.log("Closing port " + this.serialPort);
           this.master.close(connectorFunc);
         } else {
           connectorFunc();
         }
       } catch (e) {
+        console.log('Port Error:', e);
         reject(e);
       }
     })

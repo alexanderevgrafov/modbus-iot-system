@@ -153,6 +153,7 @@ const AppState = types
         const control = self.layout.get(id);
 
         if (control) {
+          console.log('Layout update', data.state);
           control.changeState(data.state);
         } else {
           console.error('Control not found', id);

@@ -20,7 +20,7 @@ class PumpModule extends PluginBase {
     const cycle = seconds % (cycleLength || 60);
     const assumed = cycle > startAt && cycle < stopAt;
 
-    console.log('Pump module', cycle, current, assumed);
+//    console.log('Pump module', cycle, current, assumed);
 
     if (current !== assumed) {
       this.status = assumed;

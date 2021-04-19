@@ -120,16 +120,10 @@ class Application {
     setTimeout(()=>    this.emit('stateReload'), 3000);
   }
 
-  emit(command, data, comment) {
-    const count = io.sockets.size;
+  emit(command, data) {
+    io.sockets.emit(command, data);
 
-    if (count) {
-      io.sockets.emit(command, data);
-
-      comment && console.log('Emit', command, 'to', count);
-    }
-
-    return count;
+    console.log('Emit', command, data ? 'with' : '', data || '');
   }
 
   handleError(e) {

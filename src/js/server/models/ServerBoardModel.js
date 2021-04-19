@@ -132,6 +132,7 @@ const ServerBoardModel = types.compose('BoardModel',
 
                 if (source !== 'board' && self[branch].saveToBoard) {
                   self[branch].saveToBoard();
+                  manager.getApp().saveSystemState();
                 }
               }
             }
@@ -177,6 +178,8 @@ const ServerBoardModel = types.compose('BoardModel',
         async fetchConfig() {
           try {
             const {bid} = self;
+
+            console.log('Fetching board config', bid);
             const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
 
             self.set({config}, 'board');
@@ -188,6 +191,7 @@ const ServerBoardModel = types.compose('BoardModel',
 
         async fetchData() {
           try {
+            console.log('Fetching board data', self.bid);
             const data = await modServer.getBoardData(self.bid, self.dataOffset);
 
             self.set({data}, 'board');
@@ -201,7 +205,11 @@ const ServerBoardModel = types.compose('BoardModel',
         },
 
         setLastError(e) {
-          self.set({status: {lastError: e.message || e}});
+          const message = e.message || e;
+          if (e) {
+            console.log('Board', self.bid, 'error', message);
+          }
+          self.set({status: {lastError: message}});
         },
       }
     })

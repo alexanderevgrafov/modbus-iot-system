@@ -110,6 +110,7 @@ async function routes(fastify, options) {
       app.modServer.master.setTimeout(config.MODBUS_TIMEOUT);
 
     } catch (e) {
+      console.log('Port Error:', e);
       throw new Error(e);
     }
   }

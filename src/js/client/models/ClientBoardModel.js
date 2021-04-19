@@ -16,7 +16,9 @@ const ClientBoardConfigModel = types.compose('ClientBoardConfigModel',
     .views(self => {
       return {
         pinAddr(pin) {
-          return (self.pinsAddr >> (pin * 4)) & 0xF;
+          const bits = (self.pinsAddr >> (pin * 4)) & 0xF
+          const addr = ( bits & 0x7 ) * ( bits & 0x8 ? -1 : 1);
+          return addr;
         },
 
         isPinWrite(pin) {
@@ -31,10 +33,10 @@ const ClientBoardConfigModel = types.compose('ClientBoardConfigModel',
     .actions(self => {
       return {
         setPinAddr(pin, addr) {
+          self.pinsAddr &= 0xffffffff ^ (0xF << (4 * pin));
           if (!!addr) {
-            self.pinsAddr |= (addr & 0xF) << (4 * pin);
-          } else {
-            self.pinsAddr &= 0xffffffff ^ (0xF << (4 * pin));
+            const bits = ( Math.abs(addr) & 0x7) | ( addr > 0 ? 0 : 0x8);
+            self.pinsAddr |= bits << (4 * pin);
           }
         },
 
