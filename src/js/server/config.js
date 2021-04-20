@@ -7,6 +7,7 @@ const defaults = {
   MODBUS_TIMEOUT: 2500,
   SLAVE_ID_ADDR: 4,
   WS_SERVER_PORT: 567,
+  MAX_MODBUS_QUEUE_SIZE: 10,
 }
 
 const dotenv = require('dotenv').config().parsed;

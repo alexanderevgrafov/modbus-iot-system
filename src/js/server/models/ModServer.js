@@ -37,6 +37,10 @@ class ModServer {
   }
 
   waitModbusIdle() {
+    if (this.modbusCalls > config.MAX_MODBUS_QUEUE_SIZE) {
+      return Promise.reject('Modbus call queue is full. Seems like board answers slower than get requested');
+    }
+
     if (!this.modbusCalls) {
       this.modbusCalls++;
 
@@ -61,7 +65,7 @@ class ModServer {
 
   modbusQueue(slaveId, cb) {
  //   console.log('queue for', slaveId);
-    return this.waitModbusIdle(true)
+    return this.waitModbusIdle()
       .then(() => this.master.setID(parseInt(slaveId)))
       .then(cb)
       .finally(() => this.modbusCalls--)
@@ -159,7 +163,7 @@ class ModServer {
       try {
         if (this.serialPort) {
           this.log("Closing port " + this.serialPort);
-          this.master.close(connectorFunc);
+          this.master.close(connectorFunc); // Reconnect new port after closing prev one.
         } else {
           connectorFunc();
         }
