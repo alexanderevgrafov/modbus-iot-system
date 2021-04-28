@@ -15,7 +15,7 @@ const dist = path.join(__dirname, process.env.WEBPACK_DIST || 'public'),
 
   plugins = [
     new webpack.ProvidePlugin({
-      //   $        : 'jquery',
+      $        : 'jquery',
       //   jQuery   : 'jquery',
       //   jQueryUI : 'jquery-ui',
       _: 'lodash'
