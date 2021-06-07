@@ -162,8 +162,14 @@ class ModServer {
 
       try {
         if (this.serialPort) {
-          this.log("Closing port " + this.serialPort);
-          this.master.close(connectorFunc); // Reconnect new port after closing prev one.
+          this.log("Closing port " + this.serialPort + ", open=" + this.master._port.isOpen);
+
+          if (this.master._port.isOpen) {
+            this.serialPort = '';
+            this.master.close(connectorFunc);  // Reconnect new port after closing prev one.
+          } else {
+            console.log('Port was not really open!!!')
+          }
         } else {
           connectorFunc();
         }

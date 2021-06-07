@@ -58,10 +58,10 @@ const Application = observer(() => {
       appState.updateLayout(payload);
     });
 
-    $(window).on('focus', onWindowFocus);
+    window.addEventListener('focus', onWindowFocus);
 
     return () => {
-      $(window).off('focus', onWindowFocus);
+      window.removeEventListener('focus', onWindowFocus);
     }
   }, []);
 

@@ -107,7 +107,7 @@ async function routes(fastify, options) {
   async function setMasterPort({body: {port}}) {
     try {
       await app.modServer.setComPort(port);
-      app.modServer.master.setTimeout(config.MODBUS_TIMEOUT);
+    //  app.modServer.master.setTimeout(config.MODBUS_TIMEOUT);
 
     } catch (e) {
       console.log('Port Error:', e);
