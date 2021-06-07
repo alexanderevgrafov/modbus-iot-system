@@ -12,8 +12,9 @@
   "node-red" : {
     "nodes": {
       "s-home-central": "central.js",
-      "s-home-board-input": "board-input.js",
-      "s-home-board-output": "board-output.js"
+      "s-home-from-board-event": "from-board-event.js",
+      "s-home-to-board": "to-board.js",
+      "s-home-switch-by-pin": "switch-by-pin.js"
     }
   }
 }

@@ -1,7 +1,7 @@
 const _ = require('lodash');
 //const fs = require('fs');
-const ModbusRTU = require('modbus-serial');
-//const ModbusRTU = require('../modbus-serial-mock');
+//const ModbusRTU = require('modbus-serial');
+const ModbusRTU = require('../modbus-serial-mock');
 const config = require('../config');
 
 class ModServer {

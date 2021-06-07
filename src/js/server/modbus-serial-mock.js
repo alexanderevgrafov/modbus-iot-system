@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const fs = require('fs');
-const CONFIG_STORAGE_FILE = 'mock_board';
+const CONFIG_STORAGE_FILE = __dirname + '/../../../mock_board';
 
 class ModbusRtuMock {
   data = [];
@@ -16,7 +16,8 @@ class ModbusRtuMock {
 
       const data = this.data.slice(addr, addr + count);
 
-      console.log('MockRead', addr, count, data);
+   //   console.log('MockRead', addr, count, data);
+      console.log('<---board',  addr, count, data);
 
       return new Promise(res => {
         setTimeout(() => res({data}), 500);
@@ -37,7 +38,7 @@ class ModbusRtuMock {
 
       this.load();
 
-      console.log('MockWrite', dataArr);
+      console.log('--->board', dataArr);
 
       _.each(dataArr, (word, index) => {
         this.data[addr + index] = word
@@ -62,7 +63,7 @@ class ModbusRtuMock {
   }
 
   setID(id) {
-    console.log('MockSetId', id)
+ //   console.log('-id-board', id)
     this.id = id;
 
     return Promise.resolve();
@@ -75,6 +76,7 @@ class ModbusRtuMock {
   load() {
     // try {
       this.data = JSON.parse(fs.readFileSync(this.fileName()));
+ //   console.log('<---board', this.data);
     // } catch (e) {
     //   console.log('MockLoadFail', e);
     //   this.data = _.fill(Array(20), 0);
@@ -82,7 +84,7 @@ class ModbusRtuMock {
   }
 
   save() {
-    // console.log('Board recieved', this.data);
+ //   console.log('--->board', this.data);
     fs.writeFileSync(this.fileName(), JSON.stringify(this.data, null, '  '))
   }
 
@@ -92,6 +94,7 @@ class ModbusRtuMock {
 
   mockError(msg){
     return;
+
     if (Math.random() < .3) {
       throw new Error(msg ||'Mocked Error');
     }

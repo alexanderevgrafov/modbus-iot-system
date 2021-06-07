@@ -137,9 +137,11 @@ const BoardsManager = types
 
           _.each(boardHandlers, ({path, cb}) => {
 
-      //      console.log('BC2', changes, path, _.get(changes, path));
+            const changesToSend = !path ? changes :  _.get(changes, path);
 
-            if (!_.isUndefined(_.get(changes, path))) {
+       //     console.log('BC2', changes, path, changesToSend);
+
+            if (!_.isUndefined(changesToSend)) {
               cb(board, changes);
             }
           })

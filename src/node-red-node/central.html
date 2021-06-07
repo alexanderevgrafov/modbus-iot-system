@@ -5,8 +5,8 @@
     defaults: {
       name: {value:""}
     },
-    inputs:1,
-    outputs:1,
+    inputs:0,
+    outputs:0,
     icon: "file.png",
     label: function() {
       return this.name||"sHome Central";
@@ -15,6 +15,10 @@
 </script>
 
 <script type="text/html" data-template-name="s-home-central">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
