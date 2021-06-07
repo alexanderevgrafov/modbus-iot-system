@@ -7,23 +7,26 @@ class PumpModule extends PluginBase {
   title = NAME;
 
   loop(now, lastLoop) {
-    const {boardId: bid, start_at, stop_at, relayPin} = this.config;
+    const {boardId: bid, startAt, stopAt, cycleLength, relayPin} = this.config;
     // const minutes = Math.floor(now / 60000);
-    const minutes = Math.floor(now / 1000);
+    // const hours = dayjs().get('hour');
+    // const minutes = dayjs().get('minute');
+    // const seconds = dayjs().get('second');
 
+    const seconds = dayjs().get('second') + (dayjs().get('minute') + dayjs().get('hour')*60)*60;
     const board = this.application.boardsManager.getBoard(bid);
 
     const current = !!board.data.isOn(relayPin);
-    const cycle = minutes % 60;
-    const assumed = cycle > start_at && cycle < stop_at;
+    const cycle = seconds % (cycleLength || 60);
+    const assumed = cycle > startAt && cycle < stopAt;
 
-    console.log('Pump module', cycle, current, assumed);
+//    console.log('Pump module', cycle, current, assumed);
 
     if (current !== assumed) {
       this.status = assumed;
       board.setDataPin(relayPin, assumed);
 
-      console.log('Pump', assumed ? 'ON' : 'OFF', dayjs().format('HH:mm'));
+ //     console.log('Pump', assumed ? 'ON' : 'OFF', dayjs().format('HH:mm'));
 
       this.emitChange('pump', {status: this.getStatusText()});
 
@@ -53,8 +56,9 @@ class PumpModule extends PluginBase {
 }
 
 const defaultConfig = {
-  start_at: 0,
-  stop_at: 0,
+  startAt: 0,
+  stopAt: 0,
+  cycleLength:60,
   relayPin: 0,
   boardId: 0,
 };

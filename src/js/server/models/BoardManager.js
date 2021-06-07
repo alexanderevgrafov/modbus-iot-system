@@ -15,10 +15,8 @@ const BoardsManager = types
     return {
       afterCreate() {
         onPatch(self.boards, patch => {
-          // console.log('PATCH for boards', patch);
           if ((patch.op === 'add' || patch.op === 'remove') && patch.path.match(/^\/\d+$/)) {
-            console.log('Emitted state reload by', patch);
-            application.emit('stateReload');
+            application.emit('stateReload', null, 'State reload');
           }
         })
       },
@@ -51,10 +49,13 @@ const BoardsManager = types
         }
       },
 */
-      addBoard(data, ms) {
-        const board = self.boards.put(data);
+      addBoard(data) {
+        const fullData = {data:{}, config:{}, settings:{}, status:{}, ...data};
+        const board = self.boards.put(fullData);
 
-        board.init(ms);
+        console.log('Board', board.bid,'is added');
+
+        board.init(application.modServer);
         board.onChange(data);
 
         return board;
@@ -93,10 +94,10 @@ const BoardsManager = types
                      name: 'removeBoard',
                      args: [cur]
                    }])*/
-            self.addBoard(snap, application.modServer)
+            self.addBoard(snap)
             self.removeBoard(cur);
           })
-          .catch(handleModServerError(cur))
+          .catch(board.setLastError)
       },
 
       removeBoard(bid) {
@@ -116,7 +117,7 @@ const BoardsManager = types
         console.log('Init boards manager');
 
         _.each(data.boards, dt => {
-          self.addBoard(dt, app.modServer);
+          self.addBoard(dt);
         })
       },
 
@@ -136,9 +137,11 @@ const BoardsManager = types
 
           _.each(boardHandlers, ({path, cb}) => {
 
-      //      console.log('BC2', changes, path, _.get(changes, path));
+            const changesToSend = !path ? changes :  _.get(changes, path);
 
-            if (!_.isUndefined(_.get(changes, path))) {
+       //     console.log('BC2', changes, path, changesToSend);
+
+            if (!_.isUndefined(changesToSend)) {
               cb(board, changes);
             }
           })

@@ -11,13 +11,19 @@ import {io} from 'socket.io-client';
 import {applySnapshot, getSnapshot} from 'mobx-state-tree';
 import './styles.less';
 
-const socketServerPath = 'localhost:567';
+const socketServerPath = process.env.WS_SERVER_HOST + ':' + process.env.WS_SERVER_PORT;
 const socket = io(socketServerPath);
 
-const onWindowOrTabClose = appState => async e => {
-  console.log('unmounting...');
-//  await appState.save();
-  console.log('done!.');
+console.log('WS server path used', socketServerPath);
+
+// const onWindowOrTabClose = appState => async e => {
+//   console.log('unmounting...');
+//   console.log('done!.');
+// };
+
+const onWindowFocusFactory = appState => async e => {
+  console.log('### window is focused! (state load)');
+  appState.load();
 };
 
 const Application = observer(() => {
@@ -25,6 +31,8 @@ const Application = observer(() => {
   const [appState] = useState(AppState.create({scanner: {}}));
 
   useEffect(() => {
+    const onWindowFocus = onWindowFocusFactory(appState);
+
     appState.load()
       .then(() => {
         setReady(true)
@@ -50,10 +58,10 @@ const Application = observer(() => {
       appState.updateLayout(payload);
     });
 
-    window.addEventListener('beforeunload', onWindowOrTabClose(appState));
+    window.addEventListener('focus', onWindowFocus);
 
     return () => {
-      window.removeEventListener('beforeunload', onWindowOrTabClose(appState));
+      window.removeEventListener('focus', onWindowFocus);
     }
   }, []);
 

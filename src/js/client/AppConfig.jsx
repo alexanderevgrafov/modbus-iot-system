@@ -10,7 +10,7 @@ const AppConfig = observer(() => {
   const appState = useContext(AppStateContext);
 
   return <div id="app-config">
-    <h3>Config</h3>
+    <div className='section-title'>Config</div>
     <div>
       <select onChange={e => appState.setPort(e.target.value)} defaultValue={appState.comPort}>
         <option value=''>--not set--</option>
@@ -21,10 +21,11 @@ const AppConfig = observer(() => {
         }
       </select>
     </div>
-    <b>Last errors: <button onClick={()=>appState.clearErrors()}>clear</button></b>
+    <b>Last errors: <button onClick={() => appState.clearErrors()}>clear</button></b>
     {
       _.map(appState.errors, (err, i) => <div key={i}>{dayjs(err.date).format('DD MMM HH:mm:ss')}: {err.text}</div>)   //DD MMM
     }
+    <PluginsList/>
     <BoardScanner/>
     <PluginsList/>
   </div>

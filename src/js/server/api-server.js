@@ -87,6 +87,8 @@ async function routes(fastify, options) {
   }
 
   async function addBoard({body: json}) {
+    json.bid = parseInt(json.bid);
+
     return await app.boardsManager.addBoard(json);
   }
 
@@ -105,9 +107,10 @@ async function routes(fastify, options) {
   async function setMasterPort({body: {port}}) {
     try {
       await app.modServer.setComPort(port);
-      app.modServer.master.setTimeout(config.MODBUS_TIMEOUT);
+    //  app.modServer.master.setTimeout(config.MODBUS_TIMEOUT);
 
     } catch (e) {
+      console.log('Port Error:', e);
       throw new Error(e);
     }
   }
@@ -116,7 +119,7 @@ async function routes(fastify, options) {
     return await app.pluginsManager.getPluginsList();
   }
 
-  async function setPluginsList({body:{list}}) {
+  async function setPluginsList({body: {list}}) {
     return await app.pluginsManager.setPluginsList(list);
   }
 

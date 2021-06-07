@@ -23,7 +23,7 @@ class _PluginBaseClass {
         this.loop(now, this.lastLoop);
         this.lastLoop = now;
         } catch (e) {
-        console.error('Error at', this.title, e);
+        console.error('Error at', this.title, e.message || e);
       }
     }
 
