@@ -13,8 +13,15 @@ const ServerBoardConfigModel = types.compose('ServerBoardConfigModel',
   types.model('',
     {})
     .actions(self => {
-      const board = getParent(self);
-      const manager = getRoot(self);
+      let board;
+      let manager;
+
+      try {
+        board = getParent(self);
+        manager = getRoot(self);
+      } catch (e) {
+        console.log('Board config error in INIT', e.message);
+      }
 
       return {
         saveToBoard() {
@@ -40,8 +47,16 @@ const ServerBoardDataModel = types.compose('BoardDataModel',
   types.model('',
     {})
     .actions(self => {
-      const board = getParent(self);
-      const manager = getRoot(self);
+      let board;
+      let manager;
+
+      try {
+        board = getParent(self);
+        manager = getRoot(self);
+      } catch (e) {
+        console.log('Board data error in INIT', e.message);
+      }
+
 
       return {
         saveToBoard() {
@@ -117,6 +132,7 @@ const ServerBoardModel = types.compose('BoardModel',
 
                 if (source !== 'board' && self[branch].saveToBoard) {
                   self[branch].saveToBoard();
+                  manager.getApp().saveSystemState();
                 }
               }
             }
@@ -160,25 +176,40 @@ const ServerBoardModel = types.compose('BoardModel',
         },
 
         async fetchConfig() {
-          const {bid} = self;
-          const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
+          try {
+            const {bid} = self;
 
-          self.set({config}, 'board');
-          self.setDataOffset(dataOffset);
+            console.log('Fetching board config', bid);
+            const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
+
+            self.set({config}, 'board');
+            self.setDataOffset(dataOffset);
+          } catch(e) {
+            self.setLastError(e);
+          }
         },
 
         async fetchData() {
-          const data = await modServer.getBoardData(self.bid, self.dataOffset);
+          try {
+            console.log('Fetching board data', self.bid);
+            const data = await modServer.getBoardData(self.bid, self.dataOffset);
 
-          self.set({data}, 'board');
+            self.set({data}, 'board');
+          } catch (e) {
+            self.setLastError(e);
+          }
         },
 
         clearLastError() {
           self.setLastError('');
         },
 
-        setLastError(msg) {
-          self.set({status: {lastError: msg}});
+        setLastError(e) {
+          const message = e.message || e;
+          if (e) {
+            console.log('Board', self.bid, 'error', message);
+          }
+          self.set({status: {lastError: message}});
         },
       }
     })

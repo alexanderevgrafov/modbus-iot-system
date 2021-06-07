@@ -30,14 +30,16 @@ const PluginsList = () => {
   }, []);
 
   return <div>
+    <div  className='section-title'>Plugins list</div>
     {editedPlug && <><PluginConfig name={editedPlug}/><a onClick={() => setEdited()}>close</a></>}
-    {_.map(list, (plug, name) => <li key={name}>
-      {name} {plug.title} <input type='checkbox'
-                                 onChange={e => togglePlug(name, e.target.checked)}
-                                 defaultChecked={plug.isActive}/>
-      <a onClick={() => setEdited(name)}>config</a>
-    </li>)}
-   {/* <button onClick={() => saveList()}>Save</button>*/}
+    {
+      _.map(list, (plug, name) => <li key={name}>
+        {name} {plug.title} <input type='checkbox'
+                                   onChange={e => togglePlug(name, e.target.checked)}
+                                   defaultChecked={plug.isActive}/>
+        <a onClick={() => setEdited(name)}>config</a>
+      </li>)
+    }
   </div>;
 }
 

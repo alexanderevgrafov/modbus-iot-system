@@ -44,7 +44,11 @@ class PluginsManager {
       return;
     }
 
-    plugin.instance.init(plugin, this.application);
+    try {
+      plugin.instance.init(plugin, this.application);
+    } catch(e) {
+      console.error('Plugin init fail', plugin.name, e.message || e);
+    }
   }
 
   togglePlugin(name, activate) {
@@ -57,6 +61,8 @@ class PluginsManager {
       plug.isActive = false;
       this.stopPlugin(plug);
     }
+
+    this.application.saveSystemState();
   }
 
   stopPlugin(plugin) {
@@ -89,6 +95,7 @@ class PluginsManager {
     Object.assign(plug.config, config);
     this.initPlugin(plug);
 
+    this.application.saveSystemState();
     this.application.emit('stateReload');
   }
 

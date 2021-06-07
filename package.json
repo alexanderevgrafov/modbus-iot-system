@@ -4,6 +4,7 @@
     "compile": "webpack --progress --mode=development",
     "build": "webpack --mode=production",
     "server-watch": "nodemon --watch ./src/js/server --watch ./src/js/common-models ./src/js/server/server.js",
+    "red-watch": "nodemon --watch ./src/node-red-node --watch ./src/js/server node-red start",
     "server": "node ./src/js/server/server.js"
   },
   "devDependencies": {
@@ -12,9 +13,7 @@
     "html-webpack-plugin": "^4.5.1",
     "interpolate-html-plugin": "^3.0.0",
     "less-loader": "^7.3.0",
-    "mobx": "^6.0.4",
     "mobx-react": "^7.0.5",
-    "mobx-state-tree": "^5.0.0",
     "prop-types": "^15.7.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
@@ -29,11 +28,14 @@
   "dependencies": {
     "dayjs": "^1.10.4",
     "dotenv": "^8.2.0",
+    "dotenv-webpack": "^7.0.2",
     "fastify": "^3.9.2",
     "fastify-static": "^3.3.1",
     "json5": "^2.2.0",
     "less": "^4.1.0",
     "lodash": "^4.17.20",
+    "mobx": "^6.0.4",
+    "mobx-state-tree": "^5.0.0",
     "modbus-serial": "^8.0.1",
     "node-cron": "^3.0.0",
     "socket.io": "^3.1.1",

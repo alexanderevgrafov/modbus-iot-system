@@ -35,7 +35,8 @@ void saveToEEPROM() {
   }
 
   crcFact = CRC16.ccitt((uint8_t*)&sHome.config, EEPROM_STORAGE_BYTES) ^ ( VERSION >> 8 ) ^ (VERSION & 0xFF);
-  EEPROM.put(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcFact);
+  EEPROM.write(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, (uint8_t)(crcFact >> 8));
+  EEPROM.write(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES + 1, (uint8_t)(crcFact & 0xFF));
 }
 
 bool restoreFromEEPROM() {
@@ -47,7 +48,8 @@ bool restoreFromEEPROM() {
     buff[i] = EEPROM.read(EEPROM_STORAGE_ADDR + i);
   }
   crcFact = CRC16.ccitt(buff, EEPROM_STORAGE_BYTES) ^ ( VERSION >> 8 ) ^ (VERSION & 0xFF);
-  EEPROM.get(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcRead);
+//  EEPROM.get(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES, crcRead);
+  crcRead = EEPROM.read(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES)<<8 ^ EEPROM.read(EEPROM_STORAGE_ADDR + EEPROM_STORAGE_BYTES + 1);
 
   if (crcFact == crcRead) {
     memcpy(&sHome.config, buff, EEPROM_STORAGE_BYTES);

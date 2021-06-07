@@ -1,25 +1,31 @@
 const _ = require('lodash');
 const fs = require('fs');
-const CONFIG_STORAGE_FILE = 'mock_board';
+const CONFIG_STORAGE_FILE = __dirname + '/../../../mock_board';
 
 class ModbusRtuMock {
   data = [];
   id = 0;
 
   readInputRegisters(addr, count) {
-    if (Math.random() < .3) {
-      return Promise.reject('Mocked Error');
+    try {
+      this.mockError();
+
+      console.log('BFRL0');
+      this.load();
+      console.log('BFRL1');
+
+      const data = this.data.slice(addr, addr + count);
+
+   //   console.log('MockRead', addr, count, data);
+      console.log('<---board',  addr, count, data);
+
+      return new Promise(res => {
+        setTimeout(() => res({data}), 500);
+      });
+    } catch (e) {
+   //   console.log('CTCHD', e)
+      return Promise.reject(e.message || e);
     }
-
-    this.load();
-
-    const data = this.data.slice(addr, addr + count);
-
-    console.log('MockRead', addr, count, data);
-
-    return new Promise(res=> {
-      setTimeout(()=>res({data}), 500);
-    });
   }
 
   readHoldingRegisters(addr, count) {
@@ -27,19 +33,22 @@ class ModbusRtuMock {
   }
 
   writeRegisters(addr, dataArr) {
-    if (Math.random() < .3) {
-      return Promise.reject('Mocked Error');
+    try {
+      this.mockError();
+
+      this.load();
+
+      console.log('--->board', dataArr);
+
+      _.each(dataArr, (word, index) => {
+        this.data[addr + index] = word
+      });
+
+      this.save();
+
+    } catch (e) {
+      return Promise.reject(e.message || e);
     }
-
-    this.load();
-
-    console.log('MockWrite', dataArr);
-
-    _.each(dataArr, (word, index) => {
-      this.data[addr + index] = word
-    });
-
-    this.save();
 
     return Promise.resolve();
   }
@@ -54,7 +63,7 @@ class ModbusRtuMock {
   }
 
   setID(id) {
-    console.log('MockSetId', id)
+ //   console.log('-id-board', id)
     this.id = id;
 
     return Promise.resolve();
@@ -65,21 +74,30 @@ class ModbusRtuMock {
   }
 
   load() {
-    try {
+    // try {
       this.data = JSON.parse(fs.readFileSync(this.fileName()));
-    } catch (e) {
-      console.log('MockLoadFail', e);
-      this.data = _.fill(Array(20), 0);
-    }
+ //   console.log('<---board', this.data);
+    // } catch (e) {
+    //   console.log('MockLoadFail', e);
+    //   this.data = _.fill(Array(20), 0);
+    // }
   }
 
   save() {
-    // console.log('Board recieved', this.data);
+ //   console.log('--->board', this.data);
     fs.writeFileSync(this.fileName(), JSON.stringify(this.data, null, '  '))
   }
 
   fileName() {
     return CONFIG_STORAGE_FILE + this.id + '.json'
+  }
+
+  mockError(msg){
+    return;
+
+    if (Math.random() < .3) {
+      throw new Error(msg ||'Mocked Error');
+    }
   }
 }
 
