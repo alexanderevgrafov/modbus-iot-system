@@ -13,6 +13,8 @@ const fastify = require('fastify')({
 
 let io;
 
+let fastifyRegistered = false;
+
 class Application {
   isInitialised = false;
 
@@ -49,6 +51,13 @@ class Application {
     this.boardsManager = BoardsManager.create();
     this.boardsManager.init(state, this);
 
+    // Temporary support for plugins until node-red flow not established
+    this.pluginsManager = new PluginsManager(state, this);
+    this.pluginsManager.initAll();
+
+    // At first we start webserver as part of central node - just to be фиде to configure everything 'old way'
+    this.webserverSetup();
+
     this.isInitialised = true;
 
   //  this.saveSystemState();
@@ -57,7 +66,8 @@ class Application {
   }
 
   async destroy() {
-
+    await Promise.all([this.webserverClose(), this.modServer.destroy()]);
+    console.log('Application destroyed');
   }
 
   async getPortsList() {
@@ -138,11 +148,14 @@ class Application {
       },
     });
 
-    fastify
-      .register(require('fastify-static'), {
-        root: path.join(__dirname, config.PUBLIC_PATH),
-      })
-      .register(require('./api-server'), {app: this})
+    if (!fastifyRegistered) {
+      fastify
+        .register(require('fastify-static'), {
+          root: path.join(__dirname, config.PUBLIC_PATH),
+        })
+        .register(require('./api-server'), {app: this})
+      fastifyRegistered = true;
+    }
 
     console.log(`Listens on ${config.LISTEN_HOST}:${config.SERVER_PORT}`);
 
@@ -165,14 +178,19 @@ class Application {
     setTimeout(() => this.emit('stateReload'), 3000);
   }
 
-  webserverClose(){
-    io.close(()=>{
-      console.log('IO socket is successfully closed!')
-    });
-    fastify.close().then(() => {
-      console.log('WWW server is successfully closed!')
-    }, err => {
-      console.log('An error happened', err)
+  webserverClose() {
+    return new Promise(resolve => {
+      io.close(() => {
+        console.log('IO socket is successfully closed!')
+
+        fastify.close().then(() => {
+          console.log('WWW server is successfully closed!');
+          resolve();
+        }, err => {
+          console.log('An error happened', err);
+          resolve();
+        })
+      });
     })
   }
 

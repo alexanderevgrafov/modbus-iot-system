@@ -1,20 +1,13 @@
 {
   "name": "s-home-node-red",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "S-Home node red nodes set",
-  "main": "central.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "Alexander Evgrafov",
   "license": "ISC",
 
   "node-red" : {
     "nodes": {
-      "s-home-central": "central.js",
-      "s-home-from-board-event": "from-board-event.js",
-      "s-home-to-board": "to-board.js",
-      "s-home-switch-by-pin": "switch-by-pin.js"
+      "s-home-all": "s-home-all.js"
     }
   }
 }
