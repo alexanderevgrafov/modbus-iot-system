@@ -1,5 +1,6 @@
 const {getHomeServer, catchIntoStatus} = require('./common');
 const Application = require('../js/server/Application');
+const _ = require('lodash');
 
 function _onServerReady(cb) {
   this.status({fill: 'blue', shape: 'ring', text: 'Waiting for main component'});
@@ -77,7 +78,7 @@ module.exports = function (RED) {
       });
     });
 
-    this.on('close', (removed, done) => done());
+//    this.on('close', (removed, done) => done());
   }
 
   function SHomeToBoard(config) {
@@ -100,10 +101,24 @@ module.exports = function (RED) {
     this.on('close', (removed, done) => done());
   }
 
+  function SHomeInjectPin(config) {
+    RED.nodes.createNode(this, config);
+    const pin = parseInt(config.pin);
+    const propName = config.prop || 'payload';
+
+    this.status({fill: 'green', shape: 'dot', text: 'Pin ' + pin});
+
+    this.on('input', msg => {
+      this.send({[propName]:{pin, value: msg[propName]}});
+    });
+  }
+
   RED.nodes.registerType('central', SHomeCentralServerNode);
 
   RED.nodes.registerType('board event', SHomeFromBoardEvent);
   RED.nodes.registerType('to board', SHomeToBoard);
+
+  RED.nodes.registerType('inject pin id', SHomeInjectPin);
 
   // function SHomeSwitchByPin(config) {
   //   RED.nodes.createNode(this, config);
@@ -117,5 +132,5 @@ module.exports = function (RED) {
   //
   //   this.on('close', (removed, done) => done());
   // }
- // RED.nodes.registerType('switch by pin', SHomeSwitchByPin);
+  // RED.nodes.registerType('switch by pin', SHomeSwitchByPin);
 }

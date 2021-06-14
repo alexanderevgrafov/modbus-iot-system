@@ -52,11 +52,11 @@ class Application {
     this.boardsManager.init(state, this);
 
     // Temporary support for plugins until node-red flow not established
-    this.pluginsManager = new PluginsManager(state, this);
-    this.pluginsManager.initAll();
+    //this.pluginsManager = new PluginsManager(state, this);
+    //this.pluginsManager.initAll();
 
     // At first we start webserver as part of central node - just to be фиде to configure everything 'old way'
-    this.webserverSetup();
+    // this.webserverSetup();
 
     this.isInitialised = true;
 
@@ -67,7 +67,7 @@ class Application {
 
   async destroy() {
     this.saveSystemState();
-    await Promise.all([this.webserverClose(), this.modServer.destroy()]);
+    await Promise.all([/*this.webserverClose(),*/ this.modServer.destroy()]);
     console.log('Application destroyed');
   }
 
