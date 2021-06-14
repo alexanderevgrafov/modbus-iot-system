@@ -10,20 +10,20 @@ function getHomeServer(flowContext, attempt = 0) {
         reject('SHome server node is not found on the schema');
       }
 
-      console.log('getHS set timer');
+     // console.log('getHS set timer');
 
       setTimeout(() => {
         getHomeServer(flowContext, attempt++)
           .then(ppp=>{
             resolve(ppp);
 
-            console.log('getHS resolve after a while', ppp);
+           // console.log('getHS resolve after a while', ppp);
           })
           .catch(reject)
       }, 500);
     } else {
 
-      console.log('getHS resolving fast with ', app);
+     // console.log('getHS resolving fast with ', app);
       resolve(app);
     }
   })

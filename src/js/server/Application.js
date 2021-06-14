@@ -66,6 +66,7 @@ class Application {
   }
 
   async destroy() {
+    this.saveSystemState();
     await Promise.all([this.webserverClose(), this.modServer.destroy()]);
     console.log('Application destroyed');
   }
@@ -92,7 +93,7 @@ class Application {
   setState(string) {
     if (this.saveState) {
 
-      console.log(this.saveState);
+     // console.log(this.saveState);
       this.saveState(string);
     } else {
       fs.writeFileSync(this.getConfigFileName(), string)

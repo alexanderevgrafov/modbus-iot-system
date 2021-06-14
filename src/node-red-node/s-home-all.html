@@ -32,13 +32,15 @@
     outputs: 1,
     icon: 'file.png',
     label: function () {
-      return 'sHome From Board Event';
+      return this.name || 'sHome From Board Event';
     }
   });
 </script>
 
 <script type="text/html" data-template-name="board event">
     <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
         <label for="node-input-bid"><i class="fa fa-tag"></i> Board ID</label>
         <input type="text" id="node-input-bid" placeholder="">
     </div>
@@ -72,7 +74,9 @@
     category: 'SmartHome',
     color: '#a6bbcf',
     defaults: {
+      name: {value: ''},
       bid: {value: 0},
+      prop: {value: ''},
     },
     inputs: 1,
     outputs: 0,
@@ -85,8 +89,12 @@
 
 <script type="text/html" data-template-name="to board">
     <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
         <label for="node-input-bid"><i class="fa fa-tag"></i> Board ID</label>
         <input type="number" id="node-input-bid" placeholder="">
+        <label for="node-input-prop"><i class="fa fa-ellipsis-h"></i> Property</label>
+        <input type="text" id="node-input-prop" placeholder="payload">
     </div>
 </script>
 

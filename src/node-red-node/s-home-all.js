@@ -2,42 +2,48 @@ const {getHomeServer, catchIntoStatus} = require('./common');
 const Application = require('../js/server/Application');
 
 module.exports = function (RED) {
+  function asyncInitServer(node){
+    const flowContext = node.context().flow;
+    const app = new Application();
+    const saveState = text => {
+      //   console.log('SAVE STATE with!!!!!', text)
+      flowContext.set('sHomeServerState', text, 'storeInFile');
+    }
+    const loadState = () => {
+      const val = flowContext.get('sHomeServerState', 'storeInFile');
+
+ //     console.log('LOAD STATE with!!!!!', val)
+
+      return val;
+    }
+
+    app.initRed({saveState, loadState});
+
+    node.status({fill: 'green', shape: 'dot', text: 'Created '});
+
+    flowContext.set('sHomeServer', app);
+
+    node.on('close', (removed, done) => {
+      //       console.log('Central node is CLOSING')
+      app.destroy();
+      flowContext.set('sHomeServer', null);
+//        console.log('Central node is CLOSING DONE')
+      done();
+    });
+  }
   function SHomeCentralServerNode(config) {
     RED.nodes.createNode(this, config);
 
     //  const node = this;
     const flowContext = this.context().flow;
     const {sHomeServer} = flowContext;
-    const saveState = text => {
-      //   console.log('SAVE STATE with!!!!!', text)
-      flowContext.set('sHomeServerState', text, 'storeInFile');
-    }
-    const loadState = () => {
-      const val = flowContext.get('sHomeServerState');
 
-      //    console.log('LOAD STATE with!!!!!', val)
-
-      return val;
-    }
+    this.status({fill: 'blue', shape: 'ring', text: 'Waiting to be initialised'});
 
     if (sHomeServer) {
       this.status({fill: 'red', shape: 'ring', text: 'Already exists ' + sHomeServer});
     } else {
-      const app = new Application();
-
-      app.initRed({saveState, loadState});
-
-      this.status({fill: 'green', shape: 'dot', text: 'Created '});
-
-      flowContext.set('sHomeServer', app);
-
-      //  node.on('input', node.send);
-
-      this.on('close', (removed, done) => {
-        app.destroy();
-        delete flowContext.sHomeServer;
-        done();
-      });
+      setTimeout(()=>asyncInitServer(this, config), 2500);
     }
   }
 
@@ -113,13 +119,18 @@ module.exports = function (RED) {
     getHomeServer(flowContext)
       .then(app => {
         const bid = parseInt(config.bid);
+        const propName = config.prop || 'payload';
 
         this.status({fill: 'green', shape: 'dot', text: 'Ready'});
 
         const board = app.boardsManager.getBoard(bid);
 
         node.on('input', msg => {
-          board.setDataPin(msg.pin, !!msg.value);
+          if (!msg || !msg[propName]) {
+            return;
+          }
+          const {pin, value} = msg[propName];
+          board.setDataPin(pin, value);
         });
       })
       .catch(catchIntoStatus(node))

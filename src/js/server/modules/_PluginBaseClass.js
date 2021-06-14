@@ -33,7 +33,7 @@ class _PluginBaseClass {
     this.config = config;
     this.name = name;
 
-    console.log('Plugin', this.title, 'is initialised with', this.config);
+  //  console.log('Plugin', this.title, 'is initialised with', this.config);
 
     const interval = _.get(this, 'config.interval', 0);
     const events = _.get(this, 'config.events', []);
@@ -55,7 +55,7 @@ class _PluginBaseClass {
 
   stop(){
     this.clear();
-    console.log('Plugin', this.title, 'is stopped');
+//    console.log('Plugin', this.title, 'is stopped');
   }
 
   clear(){
