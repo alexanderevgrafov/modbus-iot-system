@@ -1,7 +1,7 @@
 {
-  "name": "s-home-node-red",
-  "version": "0.0.2",
-  "description": "S-Home node red nodes set",
+  "name": "node-red-s-home",
+  "version": "0.0.3",
+  "description": "S-Home nodes set",
   "author": "Alexander Evgrafov",
   "license": "ISC",
 
