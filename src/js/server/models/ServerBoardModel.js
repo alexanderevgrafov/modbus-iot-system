@@ -179,24 +179,32 @@ const ServerBoardModel = types.compose('BoardModel',
           try {
             const {bid} = self;
 
-            console.log('Fetching board config', bid);
+            //console.log('Fetching board config', bid);
             const {dataOffset, ...config} = await modServer.getBoardConfig(bid);
 
             self.set({config}, 'board');
             self.setDataOffset(dataOffset);
+
+            return config;
           } catch(e) {
             self.setLastError(e);
+
+            return {};
           }
         },
 
         async fetchData() {
           try {
-            console.log('Fetching board data', self.bid);
-            const data = await modServer.getBoardData(self.bid, self.dataOffset);
+            //console.log('Fetching board data', self.bid);
+            const data = await modServer.getBoardPins(self.bid, self.dataOffset);
 
             self.set({data}, 'board');
+
+            return data;
           } catch (e) {
             self.setLastError(e);
+
+            return {};
           }
         },
 

@@ -6,7 +6,7 @@ async function routes(fastify, options) {
   const {app} = options;
   const fastifyHandlers = [
     ['get', '/config/:id', getBoardConfig],
-    ['get', '/data/:id/:addr', getBoardData],
+    ['get', '/data/:id/:addr', getBoardPins],
     ['post', '/board/:id', setBoard],
     ['post', '/board/newid', setBoardId],
     ['post', '/add-board', addBoard],
@@ -66,13 +66,13 @@ async function routes(fastify, options) {
     return await app.modServer.getBoardConfig(id);
   }
 
-  async function getBoardData({params: {id, addr}}) {
+  async function getBoardPins({params: {id, addr}}) {
     // const [pins, readPins] = await modbusQuene(parseInt(id), () => app.modServer.master.readHoldingRegisters(parseInt(addr), 2))
     //   .then(x => x.data);
     //   console.log("Pins", pins, "readPins", readPins);
     //
     // return {pins, readPins};
-    return await app.modServer.getBoardData(id, addr);
+    return await app.modServer.getBoardPins(id, addr);
 
   }
 

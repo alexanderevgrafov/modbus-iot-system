@@ -49,17 +49,21 @@ module.exports = function (RED) {
   }
 
   function SHomeFromBoardEvent(config) {
-    RED.nodes.createNode(this, config);
-    let storedPins;
     const bid = parseInt(config.bid);
+    const period = parseInt(config.period);
+    let fetchInterval;
+
+    RED.nodes.createNode(this, config);
 
     _onServerReady.call(this, app => {
       const board = app.boardsManager.getBoard(bid);
+      let {pins: storedPins} = board.fetchData();
 
       app.boardsManager.setBoardEvent(bid, '', (board, changes) => {
         const newValue = _.get(changes, 'data.pins');
 
-        //  console.log('BoardChanges', changes, newValue, storedPins);
+        console.log('BoardChanges', bid, changes, newValue, storedPins);
+
         for (let i = 0; i < 8; i++) {
           const mask = 1 << i;
           const prevPin = storedPins & mask; // ToDo: this wont distinct previous Zero from first iteration with storedPins==undefined
@@ -71,14 +75,19 @@ module.exports = function (RED) {
         }
 
         storedPins = newValue;
-      })
-
-      this.on('input', msg => {
-        board.fetchData();
       });
+
+      if (period) {
+        setInterval(()=>board.fetchData(), period);
+      }
+
+      this.on('input', msg => board.fetchData());
     });
 
-//    this.on('close', (removed, done) => done());
+    this.on('close', (removed, done) => {
+      clearInterval(fetchInterval);
+      done();
+    });
   }
 
   function SHomeToBoard(config) {
@@ -109,7 +118,7 @@ module.exports = function (RED) {
     this.status({fill: 'green', shape: 'dot', text: 'Pin ' + pin});
 
     this.on('input', msg => {
-      this.send({[propName]:{pin, value: msg[propName]}});
+      this.send({[propName]: {pin, value: msg[propName]}});
     });
   }
 

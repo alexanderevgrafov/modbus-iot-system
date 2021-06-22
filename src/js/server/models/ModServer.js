@@ -97,13 +97,13 @@ class ModServer {
           typeId: data[3]
         }
 
-        console.log('Config for', id, 'returns', ret);
+       // console.log('Config for', id, 'returns', ret);
 
         return ret;
       })
   }
 
-  async getBoardData(id, addr) {
+  async getBoardPins(id, addr) {
     const [pins, readPins] = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(addr, 2))
       //   const arr = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr)-4, 10))
       .then(x => x.data);
