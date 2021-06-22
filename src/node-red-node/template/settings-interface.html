@@ -1,0 +1,219 @@
+<html>
+<head>
+    <script>
+    //  let connected = false;
+      let socket = null;
+      let boards;
+
+      function setSocket() {
+        const serverUrl = '{{url}}';
+
+        return new Promise(resolve => {
+          socket = new WebSocket(`ws://${serverUrl}`);
+
+          socket.onopen = () => resolve(socket);
+
+          socket.onerror = e => {
+            alert('Socket error:' + (e.message || e));
+          }
+        });
+      }
+
+      function subscribe(socket) {
+        socket.send({op:'get-boards'});
+
+        socket.onmessage = event => {
+          const msg = JSON.parse(event.data);
+
+          switch(msg.op) {
+            case 'boards':
+              setBoards(msg.data);
+              break;
+            default:
+              alert('Unknown operation:' + JSON.stringify(msg));
+          }
+
+        };
+      }
+
+      function setBoards(data) {
+        boards = data;
+        const $select = document.getElementById('selector');
+
+        while ($select.firstChild) {
+          $select.removeChild($select.firstChild);
+        }
+
+        for(index in boards) {
+          const item = boards[index];
+
+          const $opt = document.createElement('option');
+          $opt.value = item.bid;
+          $opt.innerText = (item.name ? (item.name + ', ') : '') + 'id:' + item.bid;
+
+          $select.appendChild($opt);
+        }
+
+        $select.onchange = onBoardSelect;
+      }
+
+      function onBoardSelect(e) {
+        const val = e.target.value;
+        const conf = boards.find(x=>x.bid===val);
+
+        showUiForBoard(conf);
+      }
+
+      function rotateMode(e) {
+        const $this = e.target;
+        let val = $this.innerText;
+
+        if (val === 'r') {
+          val = 'w';
+        } else if (val === 'w') {
+          val = '';
+        } else {
+          val = 'r';
+        }
+
+        $this.innerText = val;
+      }
+
+      function setUiForPin($box, num, addr, mode) {
+        const $name = $box.getElementsByClassName('pin-name')[0];
+        const $addr = $box.getElementsByClassName('pin-addr-input')[0];
+        const $mode = $box.getElementsByClassName('pin-mode')[0];
+
+        $name.innerText = 'Pin ' + num;
+        $addr.value = addr ? (num + addr) : 0;
+        $mode.innerText = mode;
+
+        $mode.onclick = rotateMode;
+      }
+
+      function getForPin($box) {
+        const addr = parseInt($box.getElementsByClassName('pin-addr-input')[0].value);
+        const mode = $box.getElementsByClassName('pin-mode')[0].innerText;
+
+        return [addr, mode];
+      }
+
+      function getInputNum(id) {
+        const $box = document.getElementById(id);
+        return parseInt($box.value);
+      }
+
+      function getSaveBoard(bid) {
+        return function (e) {
+          const res = {bid, pins: []};
+          const newBid = getInputNum('bid');
+
+          res.startingPin = getInputNum('starting-pin');
+          res.name = document.getElementById('board-name').value;
+
+          if (bid !== newBid) {
+            res.newBid = newBid;
+          }
+
+          for (let i = 0; i < 8; i++) {
+            const $box = document.getElementById('pin' + i);
+            const item = getForPin($box);
+
+            item[0] -= item[0] ? (res.startingPin + i) : 0;
+            res.pins[i] = item;
+          }
+
+          socket.send({op:'config', data: res});
+          //console.log('Get info:', res);
+        }
+      }
+
+      function showUiForBoard(config) {
+        // $table = document.getElementById('board-ui');
+        for (let i = 0; i < 8; i++) {
+          const $box = document.getElementById('pin' + i);
+          const item = config.pins[i];
+          setUiForPin($box, config.startingPin + i, item[0], item[1]);
+        }
+
+        document.getElementById('starting-pin').value = config.startingPin;
+        document.getElementById('bid').value = config.bid;
+        document.getElementById('save-btn').onclick = getSaveBoard(config.bid);
+      }
+
+      function main() {
+        setSocket().then(subscribe);
+        // showUiForBoard({
+        //   bid: 33,
+        //   startingPin: 5,
+        //   pins: [[0, 'r'], [0, 'w'], [3, 'w'], [3, ''], [0, ''], [0, ''], [-1, 'r'], [-3, 'w']],
+        // })
+      }
+    </script>
+</head>
+<body>
+<select id="selector"></select>
+<div id="board-ui">
+    <table>
+        <tr>
+            <td>ID:</td>
+            <td><input id="bid"/></td>
+        </tr>
+        <tr>
+            <td>Name:</td>
+            <td><input id="board-name"/></td>
+        </tr>
+        <tr>
+            <td>Start:</td>
+            <td><input id="starting-pin"/></td>
+        </tr>
+    </table>
+    <table>
+        <tr id="pin0">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin1">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin2">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin3">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin4">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin5">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin6">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+        <tr id="pin7">
+            <td class="pin-name"></td>
+            <td class="pin-addr-td"><input class="pin-addr-input"/></td>
+            <td class="pin-mode"></td>
+        </tr>
+    </table>
+    <button id="save-btn">Save</button>
+</div>
+<script>
+  main();
+</script>
+</body>
+</html>
