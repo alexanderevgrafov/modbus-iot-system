@@ -1,7 +1,7 @@
 const _ = require('lodash');
-//const fs = require('fs');
-const ModbusRTU = require('modbus-serial');
-//const ModbusRTU = require('../modbus-serial-mock');
+
+//const ModbusRTU = require('modbus-serial');
+const {ModbusRTU} = require('../modbus-serial-mock');
 const config = require('../config');
 
 class ModServer {
@@ -108,10 +108,6 @@ class ModServer {
       //   const arr = await this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(parseInt(addr)-4, 10))
       .then(x => x.data);
 
-      //console.log('GetData: ', id, addr, pins, readPins);
-
-    //  console.log('Arr', arr);
-
     //  return {pins:0, readPins:0};
     //  this.brd_data = parseInt(pins);
 
@@ -126,8 +122,6 @@ class ModServer {
   }
 
   async setBoardData({id, pins, addr}) {
-    //  this.brd_data = parseInt(pins);
-    //  this.brd_addr = addr;
     const arr = [pins];
 
     //console.log('setData: ', id, addr, pins);
@@ -145,6 +139,26 @@ class ModServer {
     await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(config.SLAVE_ID_ADDR, arr))
 
     return {id: newid};
+  }
+
+  async pingBoard(id) {
+    return this.modbusQueue(parseInt(id), () => this.master.readHoldingRegisters(config.SLAVE_ID_ADDR, 1)).then(res=>res.data[0]);
+  }
+
+  async setBoardCommand({id, cmd, cmdDataBytes}) {
+    const firstByte = cmdDataBytes.shift() || 0;
+    const cmdWord = ((cmd & 0xFF) << 8) + (firstByte & 0xFF);
+    const arr = [cmdWord];
+
+    while (cmdDataBytes.length) {
+      let word = (cmdDataBytes.shift() & 0xFF) << 8;
+      word +=  ((cmdDataBytes.shift() || 0) & 0xFF);
+
+      arr.push(word);
+    }
+
+    // 34 is extCmd address in board data structure.
+    await this.modbusQueue(parseInt(id), () => this.master.writeRegisters(34, arr));
   }
 
   setComPort(port) {
