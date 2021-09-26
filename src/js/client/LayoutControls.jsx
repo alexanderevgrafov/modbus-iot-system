@@ -13,5 +13,15 @@ const Button = ({data: {name, label, state}}) => {
 
 const Info = ({data: {label, state}}) => <div>{label}: {state.status}</div>;
 
+const Input = ({data: {name, label, state}}) => {
+  const appState = useContext(AppStateContext);
 
-export {Button, Info};
+  return <>
+    { label }: <input
+    defaultValue={ state.value }
+    onChange={ e => appState.onLayoutControlChange( name, { value : e.target.value } ) }
+  />
+  </>
+};
+
+export {Button, Info, Input};

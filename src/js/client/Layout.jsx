@@ -1,11 +1,12 @@
 import * as React from 'react';
 import {observer} from 'mobx-react';
 import {entries} from 'mobx';
-import {Button, Info} from './LayoutControls';
+import {Button, Info, Input} from './LayoutControls';
 
 const controlsMap = {
   button: Button,
   information: Info,
+  input: Input
 }
 
 const LayoutControl = observer(({control: {type, ...data}}) => {
