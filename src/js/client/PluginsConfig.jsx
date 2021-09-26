@@ -46,8 +46,8 @@ const PluginConfig = ({name}) => {
       .catch(appState.setErrorItem)
   }, [name]);
 
-  return <div>
-    <textarea value={json} onChange={e => validateAndSetJson(e.target.value)}/>
+  return <div className='plugin-config'>
+    <textarea value={json} onChange={e => validateAndSetJson(e.target.value)} />
     {!isValid && <span>[JSON is invalid]</span>}
     {saving ? <Loader/> : <button onClick={() => doSave()}>Save</button>}
   </div>;

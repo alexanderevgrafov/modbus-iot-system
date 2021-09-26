@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const MODULES_PATH = '../modules/';
 
-const list = ['pump', 'buttons', 'timer'];
+const list = ['pump', 'buttons', 'timer', 'distributor'];
 
 class PluginsManager {
   application = null;
@@ -19,7 +19,9 @@ class PluginsManager {
         if (Class) {
           const plugin = {name, Class, title, isActive: false, config: defaultConfig};
 
-          Object.assign(plugin, state.plugins[name]); // ToDo: dangerous assigment, need to filter only actual attrs
+          if (state.plugins && state.plugins[name]) {
+            Object.assign( plugin, state.plugins[ name ] ); // ToDo: dangerous assigment, need to filter only actual attrs
+          }
 
           this.plugins[name] = plugin;
         }

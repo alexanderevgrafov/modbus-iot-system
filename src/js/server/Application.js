@@ -198,7 +198,7 @@ class Application {
   emit(command, data) {
     if (io) {
       io.sockets.emit(command, data);
-      console.log('Emit', command, data ? 'with' : '', data || '');
+   //   console.log('Emit', command, data ? 'with' : '', data || '');
     }
   }
 
